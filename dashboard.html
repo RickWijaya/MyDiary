@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard - Daily Emotion Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="min-h-screen bg-slate-100">
+  <!-- Top bar -->
+  <header class="bg-white shadow-md">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+      <h1 class="text-xl font-bold">Daily Face & Diary Emotion Tracker</h1>
+      <div class="text-sm text-slate-600">
+        Logged in as <span id="userEmail" class="font-semibold"></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+    <!-- Top section: Chart + Streak -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="md:col-span-2 bg-white rounded-2xl shadow p-4">
+        <h2 class="text-lg font-semibold mb-2">Emotion Trend</h2>
+        <canvas id="emotionChart" class="w-full h-64"></canvas>
+        <p class="mt-2 text-xs text-slate-500">
+          Each line shows the presence of an emotion over time (1 = present, 0 = not present).
+        </p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow p-4 flex flex-col justify-between">
+        <div>
+          <h2 class="text-lg font-semibold mb-2">Daily Streak</h2>
+          <p class="text-3xl font-bold text-indigo-600" id="streakValue">0</p>
+          <p class="text-sm text-slate-500">consecutive days checked in</p>
+        </div>
+        <div class="mt-4">
+          <h3 class="text-sm font-semibold mb-1">Recap</h3>
+          <ul id="recapList" class="text-sm text-slate-600 list-disc ml-4 space-y-1"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Check-in panel -->
+    <section class="bg-white rounded-2xl shadow p-4">
+      <h2 class="text-lg font-semibold mb-4">Today's Check-in</h2>
+
+      <div id="alreadyCheckedIn" class="hidden">
+        <p class="text-sm text-slate-700 mb-2">
+          You already checked in today.
+        </p>
+        <p class="text-sm"><span class="font-semibold">Final Emotion:</span> <span id="todayFinalEmotion"></span></p>
+        <p class="text-sm mt-1"><span class="font-semibold">Diary:</span> <span id="todayDiary"></span></p>
+      </div>
+
+      <div id="checkinFormWrapper" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Webcam + capture -->
+        <div>
+          <h3 class="text-sm font-semibold mb-2">Face Check</h3>
+          <div class="aspect-video bg-black rounded-lg overflow-hidden mb-2">
+            <video id="webcam" autoplay playsinline class="w-full h-full object-cover"></video>
+          </div>
+          <button
+            id="captureBtn"
+            class="w-full bg-slate-800 text-white py-2 rounded-lg text-sm hover:bg-slate-900"
+          >
+            Capture Face
+          </button>
+          <p class="text-xs text-slate-500 mt-1">
+            We capture one frame and send it to the AI for emotion detection.
+          </p>
+          <img id="capturePreview" class="mt-2 rounded-lg hidden" alt="Captured frame preview" />
+        </div>
+
+        <!-- Diary -->
+        <div>
+          <h3 class="text-sm font-semibold mb-2">Diary</h3>
+          <textarea
+            id="diaryText"
+            rows="7"
+            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-indigo-500"
+            placeholder="Write about your day..."
+          ></textarea>
+
+          <button
+            id="submitCheckinBtn"
+            class="mt-3 w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60"
+          >
+            Submit Today's Check-in
+          </button>
+          <p id="checkinStatus" class="text-xs text-slate-500 mt-2"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Emotion confirmation modal -->
+  <div
+    id="emotionModal"
+    class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden"
+  >
+    <div class="bg-white rounded-2xl shadow-lg max-w-sm w-full p-6">
+      <h3 class="text-lg font-semibold mb-2">Confirm Your Emotion</h3>
+      <p class="text-sm text-slate-700 mb-4">
+        We think your emotion today is:
+        <span id="modalEmotionLabel" class="font-semibold"></span><br />
+        Is this correct?
+      </p>
+      <div class="flex justify-end gap-2">
+        <button
+          id="emotionNoBtn"
+          class="px-3 py-1 rounded-lg border border-slate-300 text-sm hover:bg-slate-100"
+        >
+          No
+        </button>
+        <button
+          id="emotionYesBtn"
+          class="px-3 py-1 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+        >
+          Yes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/dashboard.js"></script>
+</body>
+</html>

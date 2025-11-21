@@ -1,0 +1,7 @@
+/* assets/css/style.css */
+/* Tailwind handles most of the styling; this just sets base typography + background. */
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-attachment: fixed;
+}
