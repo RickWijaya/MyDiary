@@ -1,8 +1,10 @@
 // assets/js/dashboard.js
 
 // ===== CONFIG =====
-const FACE_API_URL = "https://colab-example-url/predict"; // placeholder
-const TEXT_API_URL = "https://colab-example-url/predict"; // placeholder
+const FACE_API_URL = "https://colab-example-url/face";   // placeholder
+const TEXT_API_URL = "https://colab-example-url/text";   // placeholder
+const AUDIO_API_URL = "https://colab-example-url/audio"; // placeholder
+
 const CONFIDENCE_THRESHOLD = 0.7; // 70%
 
 let webcamStream = null;
@@ -11,58 +13,29 @@ let emotionChart = null;
 let userEntries = [];
 let pendingCheckinContext = null;
 
+// Audio recording
+let audioStream = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let recordedAudioBlob = null;
+let audioWaveAnimationId = null;
+let audioContext = null;
+let analyserNode = null;
+let pendingAudioCandidates = [];
+let currentTranscript = ""; // auto diary text from voice
+
 // ===== INIT =====
 document.addEventListener("DOMContentLoaded", () => {
-  initWebcam();
   setupModalButtons();
+  setupCheckinOpenButton();
   setupCheckinButton();
+  setupAudioRecording();
   loadUserData();
 });
 
 // ===== HELPER: today as local YYYY-MM-DD =====
 function getTodayString() {
-  // en-CA uses YYYY-MM-DD format
-  return new Date().toLocaleDateString("en-CA");
-}
-
-// ===== WEBCAM =====
-async function initWebcam() {
-  try {
-    webcamStream = await navigator.mediaDevices.getUserMedia({ video: true });
-    const video = document.getElementById("webcam");
-    video.srcObject = webcamStream;
-  } catch (err) {
-    console.error("Error accessing webcam:", err);
-    const statusEl = document.getElementById("checkinStatus");
-    if (statusEl) {
-      statusEl.textContent =
-        "Could not access webcam. Please check your browser permissions.";
-    }
-  }
-
-  const captureBtn = document.getElementById("captureBtn");
-  captureBtn.addEventListener("click", captureFrame);
-}
-
-function captureFrame() {
-  const video = document.getElementById("webcam");
-  if (!video || !video.videoWidth || !video.videoHeight) {
-    alert("Webcam is not ready yet.");
-    return;
-  }
-
-  const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  const dataUrl = canvas.toDataURL("image/jpeg");
-  capturedImageDataUrl = dataUrl;
-
-  const preview = document.getElementById("capturePreview");
-  preview.src = dataUrl;
-  preview.classList.remove("hidden");
+  return new Date().toLocaleDateString("en-CA"); // will be WIB if browser is WIB
 }
 
 // ===== LOAD USER DATA =====
@@ -74,9 +47,7 @@ async function loadUserData() {
       return;
     }
     const data = await res.json();
-    if (!data.success) {
-      throw new Error(data.message || "Failed to load user data");
-    }
+    if (!data.success) throw new Error(data.message || "Failed to load user data");
 
     document.getElementById("userEmail").textContent = data.email;
     userEntries = Array.isArray(data.entries) ? data.entries : [];
@@ -87,16 +58,13 @@ async function loadUserData() {
   } catch (err) {
     console.error(err);
     const statusEl = document.getElementById("checkinStatus");
-    if (statusEl) {
-      statusEl.textContent = "Failed to load dashboard data.";
-    }
+    if (statusEl) statusEl.textContent = "Failed to load dashboard data.";
   }
 }
 
 // ===== STREAK & RECAP UI =====
 function updateStreakAndRecap(streak, recapArray) {
-  const streakEl = document.getElementById("streakValue");
-  streakEl.textContent = streak || 0;
+  document.getElementById("streakValue").textContent = streak || 0;
 
   const recapList = document.getElementById("recapList");
   recapList.innerHTML = "";
@@ -118,61 +86,38 @@ function updateStreakAndRecap(streak, recapArray) {
 function updateChart(entries) {
   const ctx = document.getElementById("emotionChart").getContext("2d");
 
-  // Build sorted date list and final emotion map
   const map = {};
   entries.forEach((e) => {
     if (!e.date || !e.emotion || !e.emotion.final) return;
     map[e.date] = e.emotion.final;
   });
 
-  const dates = Object.keys(map).sort(); // ascending
-  const EMOTIONS = ["happy", "sad", "angry", "calm", "neutral"];
+  const dates = Object.keys(map).sort();
+  const EMOTIONS = ["happy", "sad", "angry"];
 
-  const datasets = EMOTIONS.map((label, idx) => {
-    const dataPoints = dates.map((d) => {
-      const val = map[d];
-      return val && val.toLowerCase() === label ? 1 : 0;
-    });
-    const colors = [
-      "rgba(34, 197, 94, 0.8)",   // happy - green
-      "rgba(239, 68, 68, 0.8)",   // sad - red
-      "rgba(234, 179, 8, 0.8)",   // angry - yellow
-      "rgba(59, 130, 246, 0.8)",  // calm - blue
-      "rgba(148, 163, 184, 0.8)"  // neutral - gray
-    ];
+  const colors = [
+    "rgba(34, 197, 94, 0.8)",   // happy - green
+    "rgba(239, 68, 68, 0.8)",   // sad - red
+    "rgba(234, 179, 8, 0.8)"    // angry - yellow
+  ];
 
-    return {
-      label: label,
-      data: dataPoints,
-      fill: false,
-      borderColor: colors[idx],
-      tension: 0.2
-    };
-  });
+  const datasets = EMOTIONS.map((label, idx) => ({
+    label,
+    data: dates.map((d) => (map[d] && map[d].toLowerCase() === label ? 1 : 0)),
+    fill: false,
+    borderColor: colors[idx],
+    tension: 0.2
+  }));
 
-  if (emotionChart) {
-    emotionChart.destroy();
-  }
+  if (emotionChart) emotionChart.destroy();
 
   emotionChart = new Chart(ctx, {
     type: "line",
-    data: {
-      labels: dates,
-      datasets: datasets
-    },
+    data: { labels: dates, datasets },
     options: {
       responsive: true,
-      plugins: {
-        legend: {
-          display: true
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          suggestedMax: 1
-        }
-      }
+      plugins: { legend: { display: true } },
+      scales: { y: { beginAtZero: true, suggestedMax: 1 } }
     }
   });
 }
@@ -183,181 +128,259 @@ function updateCheckinPanel(entries) {
   let todayEntry = null;
 
   entries.forEach((entry) => {
-    if (entry.date === todayStr) {
-      todayEntry = entry;
-    }
+    if (entry.date === todayStr) todayEntry = entry;
   });
 
   const alreadyEl = document.getElementById("alreadyCheckedIn");
-  const formWrapper = document.getElementById("checkinFormWrapper");
+  const ctaText = document.getElementById("checkinStatus");
+  const openBtn = document.getElementById("checkInOpenBtn");
 
   if (todayEntry) {
     alreadyEl.classList.remove("hidden");
-    formWrapper.classList.add("hidden");
-
     document.getElementById("todayFinalEmotion").textContent =
-      todayEntry.emotion && todayEntry.emotion.final
-        ? todayEntry.emotion.final
-        : "-";
+      todayEntry.emotion && todayEntry.emotion.final ? todayEntry.emotion.final : "-";
+    document.getElementById("todayDiary").textContent = todayEntry.diary || "-";
 
-    document.getElementById("todayDiary").textContent =
-      todayEntry.diary || "-";
+    ctaText.textContent = "You have already checked in today.";
+    openBtn.disabled = true;
+    openBtn.classList.add("opacity-60", "cursor-not-allowed");
   } else {
     alreadyEl.classList.add("hidden");
-    formWrapper.classList.remove("hidden");
+    ctaText.textContent = "You haven't checked in yet today.";
+    openBtn.disabled = false;
+    openBtn.classList.remove("opacity-60", "cursor-not-allowed");
   }
 }
 
-// ===== CHECK-IN SUBMISSION =====
-function setupCheckinButton() {
-  const btn = document.getElementById("submitCheckinBtn");
-  btn.addEventListener("click", handleCheckinSubmit);
+// ===== MODAL: OPEN/CLOSE & WEBCAM INIT =====
+function setupCheckinOpenButton() {
+  const openBtn = document.getElementById("checkInOpenBtn");
+  const modal = document.getElementById("checkinModal");
+  const closeBtn = document.getElementById("closeCheckinModalBtn");
+
+  openBtn.addEventListener("click", async () => {
+    modal.classList.remove("hidden");
+    resetCheckinModalState();
+    await initWebcam();
+  });
+
+  closeBtn.addEventListener("click", () => {
+    modal.classList.add("hidden");
+    stopWebcam();
+    stopAudioWave();
+  });
 }
 
-async function handleCheckinSubmit() {
-  const statusEl = document.getElementById("checkinStatus");
-  const diaryText = document.getElementById("diaryText").value.trim();
-  const btn = document.getElementById("submitCheckinBtn");
+function resetCheckinModalState() {
+  capturedImageDataUrl = null;
+  recordedAudioBlob = null;
+  pendingAudioCandidates = [];
+  currentTranscript = "";
 
-  if (!capturedImageDataUrl) {
-    alert("Please capture your face before submitting.");
-    return;
-  }
-  if (!diaryText) {
-    alert("Please write your diary for today.");
-    return;
-  }
+  const preview = document.getElementById("capturePreview");
+  preview.classList.add("hidden");
+  preview.src = "";
 
-  btn.disabled = true;
-  statusEl.textContent = "Analyzing your emotions...";
+  const playback = document.getElementById("audioPlayback");
+  playback.classList.add("hidden");
+  playback.src = "";
+
+  const recordStatus = document.getElementById("recordStatus");
+  recordStatus.textContent = "Tap the mic to record your voice diary.";
+
+  const transcriptDisplay = document.getElementById("transcriptDisplay");
+  transcriptDisplay.textContent = "Your transcript will appear here after recording.";
+}
+
+async function initWebcam() {
+  if (webcamStream) return;
 
   try {
-    // 1) Call Gradio/Colab APIs for face + text in parallel
-    const [faceRes, textRes] = await Promise.all([
-      sendFaceToAPI(capturedImageDataUrl),
-      sendTextToAPI(diaryText)
-    ]);
-
-    const faceCandidates = normalizeCandidates(faceRes);
-    const textCandidates = normalizeCandidates(textRes);
-
-    if (!faceCandidates.length && !textCandidates.length) {
-      throw new Error("No emotion predictions returned.");
-    }
-
-    const faceTop = faceCandidates[0] || null;
-    const textTop = textCandidates[0] || null;
-
-    // Choose main candidate list: the one with higher top confidence
-    let mainCandidates = textCandidates;
-    if (faceTop && textTop) {
-      if (faceTop.confidence > textTop.confidence) {
-        mainCandidates = faceCandidates;
-      }
-    } else if (faceTop && !textTop) {
-      mainCandidates = faceCandidates;
-    } // else if only text, we already set mainCandidates = textCandidates
-
-    const top = mainCandidates[0];
-
-    // Save context for modal
-    pendingCheckinContext = {
-      date: getTodayString(),
-      diary: diaryText,
-      faceCandidates,
-      textCandidates,
-      mainCandidates
-    };
-
-    if (top && top.confidence < CONFIDENCE_THRESHOLD) {
-      // Ask user to confirm via modal
-      openEmotionModal(top.label);
-    } else {
-      // Confidence is high enough, accept top emotion
-      const finalEmotionLabel = top ? top.label : "neutral";
-      await finalizeAndSaveEntry(finalEmotionLabel);
-    }
+    webcamStream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const video = document.getElementById("webcam");
+    video.srcObject = webcamStream;
   } catch (err) {
-    console.error(err);
-    statusEl.textContent = "Error analyzing emotions. Please try again.";
-  } finally {
-    btn.disabled = false;
+    console.error("Error accessing webcam:", err);
+    alert("Could not access webcam. Please check browser permissions.");
+  }
+
+  const captureBtn = document.getElementById("captureBtn");
+  captureBtn.addEventListener("click", captureFrame);
+}
+
+function stopWebcam() {
+  if (webcamStream) {
+    webcamStream.getTracks().forEach((t) => t.stop());
+    webcamStream = null;
+  }
+}
+
+function captureFrame() {
+  const video = document.getElementById("webcam");
+  if (!video || !video.videoWidth || !video.videoHeight) {
+    alert("Webcam is not ready yet.");
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  capturedImageDataUrl = canvas.toDataURL("image/jpeg");
+
+  const preview = document.getElementById("capturePreview");
+  preview.src = capturedImageDataUrl;
+  preview.classList.remove("hidden");
+}
+
+// ===== AUDIO RECORDING + WAVEFORM =====
+function setupAudioRecording() {
+  const recordBtn = document.getElementById("recordBtn");
+  recordBtn.addEventListener("click", async () => {
+    if (!mediaRecorder || mediaRecorder.state === "inactive") {
+      await startRecording();
+    } else if (mediaRecorder.state === "recording") {
+      stopRecording();
+    }
+  });
+}
+
+async function startRecording() {
+  try {
+    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (err) {
+    console.error("Error accessing microphone:", err);
+    alert("Could not access microphone. Please check browser permissions.");
+    return;
+  }
+
+  audioChunks = [];
+  mediaRecorder = new MediaRecorder(audioStream);
+  const recordBtn = document.getElementById("recordBtn");
+  const recordStatus = document.getElementById("recordStatus");
+  const playback = document.getElementById("audioPlayback");
+
+  recordBtn.textContent = "⏹ Stop recording";
+  recordStatus.textContent = "Recording... speak now.";
+  playback.classList.add("hidden");
+
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) audioChunks.push(e.data);
+  };
+
+  mediaRecorder.onstop = async () => {
+    recordedAudioBlob = new Blob(audioChunks, { type: "audio/webm" });
+
+    if (audioStream) {
+      audioStream.getTracks().forEach((t) => t.stop());
+      audioStream = null;
+    }
+
+    // playback
+    const audioUrl = URL.createObjectURL(recordedAudioBlob);
+    playback.src = audioUrl;
+    playback.classList.remove("hidden");
+
+    recordBtn.textContent = "🎙 Start recording";
+    recordStatus.textContent = "Recording finished. You can replay or re-record.";
+
+    stopAudioWave();
+
+    // send to audio API: get transcript + audio-based emotion
+    try {
+      const audioResult = await sendAudioToAPI(recordedAudioBlob);
+
+      // transcript
+      if (audioResult && audioResult.transcript) {
+        currentTranscript = audioResult.transcript;
+        const transcriptDisplay = document.getElementById("transcriptDisplay");
+        transcriptDisplay.textContent = currentTranscript;
+      } else {
+        currentTranscript = "";
+      }
+
+      // emotion candidates from audio
+      const rawCandidates = normalizeCandidates(audioResult);
+      const reduced = reduceToThreeEmotions(rawCandidates);
+      pendingAudioCandidates = reduced;
+    } catch (err) {
+      console.error("Audio API error:", err);
+    }
+  };
+
+  mediaRecorder.start();
+
+  startAudioWave(audioStream);
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+  }
+}
+
+function startAudioWave(stream) {
+  const canvas = document.getElementById("audioWaveCanvas");
+  const ctx = canvas.getContext("2d");
+
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const source = audioContext.createMediaStreamSource(stream);
+  analyserNode = audioContext.createAnalyser();
+  analyserNode.fftSize = 2048;
+  source.connect(analyserNode);
+
+  const bufferLength = analyserNode.fftSize;
+  const dataArray = new Uint8Array(bufferLength);
+
+  function draw() {
+    audioWaveAnimationId = requestAnimationFrame(draw);
+    analyserNode.getByteTimeDomainData(dataArray);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.02)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(249, 115, 22, 1)";
+    ctx.beginPath();
+
+    const sliceWidth = canvas.width / bufferLength;
+    let x = 0;
+
+    for (let i = 0; i < bufferLength; i++) {
+      const v = dataArray[i] / 128.0;
+      const y = (v * canvas.height) / 2;
+
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+
+      x += sliceWidth;
+    }
+
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.stroke();
+  }
+
+  draw();
+}
+
+function stopAudioWave() {
+  if (audioWaveAnimationId) {
+    cancelAnimationFrame(audioWaveAnimationId);
+    audioWaveAnimationId = null;
+  }
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
   }
 }
 
 // ===== GRADIO / COLAB API CALLS =====
-/**
- * Example payload for image-based Gradio endpoint.
- * Adjust this to match your actual Colab/Gradio interface.
- *
- * Example body:
- * {
- *   "source": "face",
- *   "image_base64": "data:image/jpeg;base64,...."
- * }
- *
- * Example response:
- * {
- *   "predictions": [
- *     { "label": "happy", "confidence": 0.82 },
- *     { "label": "calm",  "confidence": 0.74 },
- *     { "label": "sad",   "confidence": 0.10 }
- *   ]
- * }
- */
-async function sendFaceToAPI(base64Image) {
-  const body = {
-    source: "face",
-    image_base64: base64Image
-  };
-
-  const res = await fetch(FACE_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-
-  if (!res.ok) {
-    throw new Error("Face API error");
-  }
-  return res.json();
-}
-
-/**
- * Example payload for text-based Gradio endpoint.
- *
- * Example body:
- * {
- *   "source": "text",
- *   "text": "Today I feel..."
- * }
- */
-async function sendTextToAPI(text) {
-  const body = {
-    source: "text",
-    text: text
-  };
-
-  const res = await fetch(TEXT_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-
-  if (!res.ok) {
-    throw new Error("Text API error");
-  }
-  return res.json();
-}
-
-/**
- * Normalise different response formats into:
- * [{ label: string, confidence: number }, ...]
- */
 function normalizeCandidates(apiResponse) {
   if (!apiResponse) return [];
 
-  // If your Gradio returns { predictions: [ {label, confidence}, ... ] }
   if (Array.isArray(apiResponse.predictions)) {
     return apiResponse.predictions.map((p) => ({
       label: p.label,
@@ -365,7 +388,6 @@ function normalizeCandidates(apiResponse) {
     }));
   }
 
-  // If it returns an array directly
   if (Array.isArray(apiResponse)) {
     return apiResponse.map((p) => ({
       label: p.label || p[0],
@@ -376,7 +398,183 @@ function normalizeCandidates(apiResponse) {
   return [];
 }
 
-// ===== MODAL LOGIC =====
+const EMOTION_BUCKET_MAP = {
+  happy: "happy",
+  joy: "happy",
+  excited: "happy",
+  surprise: "happy",
+  neutral: "happy",
+  calm: "happy",
+
+  sad: "sad",
+  depressed: "sad",
+  bored: "sad",
+  tired: "sad",
+  lonely: "sad",
+  fear: "sad",
+
+  angry: "angry",
+  annoyed: "angry",
+  frustrated: "angry",
+  disgust: "angry",
+  contempt: "angry"
+};
+
+function reduceToThreeEmotions(predictions) {
+  const scores = { happy: 0, sad: 0, angry: 0 };
+
+  predictions.forEach((p) => {
+    const raw = (p.label || "").toLowerCase();
+    const bucket = EMOTION_BUCKET_MAP[raw];
+    if (!bucket) return;
+    scores[bucket] += Number(p.confidence) || 0;
+  });
+
+  const total = scores.happy + scores.sad + scores.angry;
+  if (total > 0) {
+    scores.happy /= total;
+    scores.sad /= total;
+    scores.angry /= total;
+  }
+
+  const result = [
+    { label: "happy", confidence: scores.happy },
+    { label: "sad", confidence: scores.sad },
+    { label: "angry", confidence: scores.angry }
+  ];
+
+  return result.sort((a, b) => b.confidence - a.confidence);
+}
+
+async function sendFaceToAPI(base64Image) {
+  const body = { source: "face", image_base64: base64Image };
+
+  const res = await fetch(FACE_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) throw new Error("Face API error");
+  return res.json();
+}
+
+async function sendTextToAPI(text) {
+  const body = { source: "text", text };
+
+  const res = await fetch(TEXT_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) throw new Error("Text API error");
+  return res.json();
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function sendAudioToAPI(audioBlob) {
+  if (!audioBlob) return null;
+
+  const audioBase64 = await blobToDataUrl(audioBlob);
+
+  const body = {
+    source: "audio",
+    audio_base64: audioBase64
+  };
+
+  const res = await fetch(AUDIO_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) throw new Error("Audio API error");
+  return res.json(); // expect { transcript, predictions: [...] }
+}
+
+// ===== CHECK-IN SUBMISSION =====
+function setupCheckinButton() {
+  const btn = document.getElementById("submitCheckinBtn");
+  btn.addEventListener("click", handleCheckinSubmit);
+}
+
+async function handleCheckinSubmit() {
+  const btn = document.getElementById("submitCheckinBtn");
+
+  if (!capturedImageDataUrl) {
+    alert("Please capture your face before submitting.");
+    return;
+  }
+
+  if (!recordedAudioBlob || !currentTranscript) {
+    alert("Please record your voice diary (we need audio & transcript).");
+    return;
+  }
+
+  btn.disabled = true;
+
+  try {
+    const [faceRes, textRes] = await Promise.all([
+      sendFaceToAPI(capturedImageDataUrl),
+      sendTextToAPI(currentTranscript)
+    ]);
+
+    const faceRaw = normalizeCandidates(faceRes);
+    const textRaw = normalizeCandidates(textRes);
+
+    const faceCandidates = reduceToThreeEmotions(faceRaw);
+    const textCandidates = reduceToThreeEmotions(textRaw);
+    const audioCandidates = pendingAudioCandidates || [];
+
+    const modalities = [
+      { type: "face", list: faceCandidates },
+      { type: "text", list: textCandidates },
+      { type: "audio", list: audioCandidates }
+    ].filter((m) => m.list && m.list.length);
+
+    if (!modalities.length) throw new Error("No emotion predictions returned.");
+
+    let main = modalities[0];
+    modalities.forEach((m) => {
+      if (m.list[0].confidence > main.list[0].confidence) main = m;
+    });
+
+    const mainCandidates = main.list;
+    const top = mainCandidates[0];
+
+    pendingCheckinContext = {
+      date: getTodayString(),
+      diary: currentTranscript,      // voice → text
+      faceCandidates,
+      textCandidates,
+      audioCandidates,
+      mainCandidates
+    };
+
+    if (top && top.confidence < CONFIDENCE_THRESHOLD) {
+      openEmotionModal(top.label);
+    } else {
+      const finalEmotionLabel = top ? top.label : "happy";
+      await finalizeAndSaveEntry(finalEmotionLabel);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Error analyzing emotions. Please try again.");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ===== EMOTION CONFIRMATION MODAL =====
 function setupModalButtons() {
   const yesBtn = document.getElementById("emotionYesBtn");
   const noBtn = document.getElementById("emotionNoBtn");
@@ -384,7 +582,7 @@ function setupModalButtons() {
   yesBtn.addEventListener("click", async () => {
     if (!pendingCheckinContext) return;
     const top = pendingCheckinContext.mainCandidates[0];
-    const finalLabel = top ? top.label : "neutral";
+    const finalLabel = top ? top.label : "happy";
     await finalizeAndSaveEntry(finalLabel);
     closeEmotionModal();
   });
@@ -393,7 +591,7 @@ function setupModalButtons() {
     if (!pendingCheckinContext) return;
     const candidates = pendingCheckinContext.mainCandidates;
     const second = candidates[1] || candidates[0];
-    const finalLabel = second ? second.label : "neutral";
+    const finalLabel = second ? second.label : "happy";
     await finalizeAndSaveEntry(finalLabel);
     closeEmotionModal();
   });
@@ -410,27 +608,24 @@ function closeEmotionModal() {
 
 // ===== FINAL SAVE TO BACKEND =====
 async function finalizeAndSaveEntry(finalEmotionLabel) {
-  const statusEl = document.getElementById("checkinStatus");
-  statusEl.textContent = "Saving your check-in...";
-
   const ctx = pendingCheckinContext;
-  if (!ctx) {
-    throw new Error("Missing pending check-in context");
-  }
+  if (!ctx) throw new Error("Missing pending check-in context");
 
-  const faceTop = ctx.faceCandidates[0] || null;
-  const textTop = ctx.textCandidates[0] || null;
+  const faceTop = ctx.faceCandidates[0] || { label: "unknown", confidence: 0 };
+  const textTop = ctx.textCandidates[0] || { label: "unknown", confidence: 0 };
+  const audioTop = ctx.audioCandidates[0] || { label: "unknown", confidence: 0 };
 
   const emotionObject = {
-    face: faceTop || { label: "unknown", confidence: 0 },
-    text: textTop || { label: "unknown", confidence: 0 },
+    face: faceTop,
+    text: textTop,   // emotion from transcript
+    voice: audioTop, // emotion from raw audio
     final: finalEmotionLabel,
     candidates: ctx.mainCandidates
   };
 
   const payload = {
     date: ctx.date,
-    diary: ctx.diary,
+    diary: ctx.diary,   // transcript used as diary
     emotion: emotionObject
   };
 
@@ -445,7 +640,14 @@ async function finalizeAndSaveEntry(finalEmotionLabel) {
     throw new Error(data.message || "Failed to save entry");
   }
 
-  statusEl.textContent = "Check-in saved!";
-  // Refresh dashboard UI (streak, recap, chart, panel)
+  // Close modal + reset state
+  document.getElementById("checkinModal").classList.add("hidden");
+  stopWebcam();
+  stopAudioWave();
+  capturedImageDataUrl = null;
+  recordedAudioBlob = null;
+  pendingAudioCandidates = [];
+  currentTranscript = "";
+
   await loadUserData();
 }

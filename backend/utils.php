@@ -2,6 +2,9 @@
 // backend/utils.php
 session_start();
 
+// Ensure all PHP date/time uses WIB (Asia/Jakarta)
+date_default_timezone_set('Asia/Jakarta');
+
 define('DATA_FILE', __DIR__ . '/../data/data.json');
 
 /**
