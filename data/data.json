@@ -5,282 +5,152 @@
       "password": "123456",
       "entries": [
         {
-          "date": "2025-11-02",
-          "diary": "Feeling good today.",
-          "emotion": {
-            "face": { "label": "happy", "confidence": 0.85 },
-            "text": { "label": "happy", "confidence": 0.80 },
-            "final": "happy",
-            "candidates": [
-              { "label": "happy", "confidence": 0.85 },
-              { "label": "calm", "confidence": 0.10 },
-              { "label": "neutral", "confidence": 0.05 }
-            ]
-          }
-        },
-        {
-          "date": "2025-11-03",
-          "diary": "A nice productive day.",
-          "emotion": {
-            "face": { "label": "happy", "confidence": 0.86 },
-            "text": { "label": "happy", "confidence": 0.82 },
-            "final": "happy",
-            "candidates": [
-              { "label": "happy", "confidence": 0.86 },
-              { "label": "calm", "confidence": 0.09 },
-              { "label": "neutral", "confidence": 0.05 }
-            ]
-          }
-        },
-        {
-          "date": "2025-11-04",
-          "diary": "Everything went smooth today.",
-          "emotion": {
-            "face": { "label": "happy", "confidence": 0.88 },
-            "text": { "label": "happy", "confidence": 0.81 },
-            "final": "happy",
-            "candidates": [
-              { "label": "happy", "confidence": 0.88 },
-              { "label": "calm", "confidence": 0.07 },
-              { "label": "neutral", "confidence": 0.05 }
-            ]
-          }
-        },
-        {
-          "date": "2025-11-05",
-          "diary": "Feeling joyful and light.",
-          "emotion": {
-            "face": { "label": "happy", "confidence": 0.87 },
-            "text": { "label": "happy", "confidence": 0.83 },
-            "final": "happy",
-            "candidates": [
-              { "label": "happy", "confidence": 0.87 },
-              { "label": "calm", "confidence": 0.08 },
-              { "label": "neutral", "confidence": 0.05 }
-            ]
-          }
-        },
-        {
-          "date": "2025-11-06",
-          "diary": "Good vibes all day.",
-          "emotion": {
-            "face": { "label": "happy", "confidence": 0.89 },
-            "text": { "label": "happy", "confidence": 0.84 },
-            "final": "happy",
-            "candidates": [
-              { "label": "happy", "confidence": 0.89 },
-              { "label": "calm", "confidence": 0.06 },
-              { "label": "neutral", "confidence": 0.05 }
-            ]
-          }
-        },
-        {
-          "date": "2025-11-07",
-          "diary": "Everything feels fun today.",
-          "emotion": {
-            "face": { "label": "happy", "confidence": 0.86 },
-            "text": { "label": "happy", "confidence": 0.82 },
-            "final": "happy",
-            "candidates": [
-              { "label": "happy", "confidence": 0.86 },
-              { "label": "calm", "confidence": 0.09 },
-              { "label": "neutral", "confidence": 0.05 }
-            ]
-          }
-        },
-        {
-          "date": "2025-11-08",
-          "diary": "Had a pleasant day.",
-          "emotion": {
-            "face": { "label": "happy", "confidence": 0.90 },
-            "text": { "label": "happy", "confidence": 0.88 },
-            "final": "happy",
-            "candidates": [
-              { "label": "happy", "confidence": 0.90 },
-              { "label": "calm", "confidence": 0.06 },
-              { "label": "neutral", "confidence": 0.04 }
-            ]
-          }
-        },
-        {
-          "date": "2025-11-09",
-          "diary": "Feeling cheerful today.",
-          "emotion": {
-            "face": { "label": "happy", "confidence": 0.91 },
-            "text": { "label": "happy", "confidence": 0.82 },
-            "final": "happy",
-            "candidates": [
-              { "label": "happy", "confidence": 0.91 },
-              { "label": "calm", "confidence": 0.05 },
-              { "label": "neutral", "confidence": 0.04 }
-            ]
-          }
-        },
-        {
-          "date": "2025-11-10",
-          "diary": "A bright and positive day.",
-          "emotion": {
-            "face": { "label": "happy", "confidence": 0.93 },
-            "text": { "label": "happy", "confidence": 0.86 },
-            "final": "happy",
-            "candidates": [
-              { "label": "happy", "confidence": 0.93 },
-              { "label": "calm", "confidence": 0.04 },
-              { "label": "neutral", "confidence": 0.03 }
-            ]
-          }
-        },
-        {
-          "date": "2025-11-11",
-          "diary": "Full of positivity.",
-          "emotion": {
-            "face": { "label": "happy", "confidence": 0.92 },
-            "text": { "label": "happy", "confidence": 0.85 },
-            "final": "happy",
-            "candidates": [
-              { "label": "happy", "confidence": 0.92 },
-              { "label": "calm", "confidence": 0.05 },
-              { "label": "neutral", "confidence": 0.03 }
-            ]
-          }
-        },
-        {
           "date": "2025-11-12",
-          "diary": "Everything went well.",
+          "diary": "Had a productive day and felt motivated.",
           "emotion": {
-            "face": { "label": "happy", "confidence": 0.88 },
-            "text": { "label": "happy", "confidence": 0.81 },
+            "face": { "label": "happy", "confidence": 0.78 },
+            "text": { "label": "happy", "confidence": 0.74 },
+            "voice": { "label": "happy", "confidence": 0.76 },
             "final": "happy",
             "candidates": [
-              { "label": "happy", "confidence": 0.88 },
-              { "label": "calm", "confidence": 0.07 },
-              { "label": "neutral", "confidence": 0.05 }
+              { "label": "happy", "confidence": 0.76 },
+              { "label": "sad",   "confidence": 0.12 },
+              { "label": "angry", "confidence": 0.12 }
             ]
           }
         },
         {
           "date": "2025-11-13",
-          "diary": "Feeling great.",
+          "diary": "Woke up tired and a bit down.",
           "emotion": {
-            "face": { "label": "happy", "confidence": 0.87 },
-            "text": { "label": "happy", "confidence": 0.84 },
-            "final": "happy",
+            "face": { "label": "sad", "confidence": 0.71 },
+            "text": { "label": "sad", "confidence": 0.77 },
+            "voice": { "label": "sad", "confidence": 0.74 },
+            "final": "sad",
             "candidates": [
-              { "label": "happy", "confidence": 0.87 },
-              { "label": "calm", "confidence": 0.08 },
-              { "label": "neutral", "confidence": 0.05 }
+              { "label": "sad",   "confidence": 0.74 },
+              { "label": "happy", "confidence": 0.14 },
+              { "label": "angry", "confidence": 0.12 }
             ]
           }
         },
         {
           "date": "2025-11-14",
-          "diary": "Such a delightful day.",
+          "diary": "Got frustrated by a delay at work.",
           "emotion": {
-            "face": { "label": "happy", "confidence": 0.89 },
-            "text": { "label": "happy", "confidence": 0.83 },
-            "final": "happy",
+            "face": { "label": "angry", "confidence": 0.69 },
+            "text": { "label": "angry", "confidence": 0.73 },
+            "voice": { "label": "angry", "confidence": 0.71 },
+            "final": "angry",
             "candidates": [
-              { "label": "happy", "confidence": 0.89 },
-              { "label": "calm", "confidence": 0.06 },
-              { "label": "neutral", "confidence": 0.05 }
+              { "label": "angry", "confidence": 0.71 },
+              { "label": "sad",   "confidence": 0.17 },
+              { "label": "happy", "confidence": 0.12 }
             ]
           }
         },
         {
           "date": "2025-11-15",
-          "diary": "Still happy as usual.",
+          "diary": "Relaxed weekend, spent time with friends.",
           "emotion": {
-            "face": { "label": "happy", "confidence": 0.87 },
-            "text": { "label": "happy", "confidence": 0.88 },
+            "face": { "label": "happy", "confidence": 0.84 },
+            "text": { "label": "happy", "confidence": 0.87 },
+            "voice": { "label": "happy", "confidence": 0.86 },
             "final": "happy",
             "candidates": [
-              { "label": "happy", "confidence": 0.87 },
-              { "label": "calm", "confidence": 0.08 },
-              { "label": "neutral", "confidence": 0.05 }
+              { "label": "happy", "confidence": 0.86 },
+              { "label": "sad",   "confidence": 0.07 },
+              { "label": "angry", "confidence": 0.07 }
             ]
           }
         },
         {
           "date": "2025-11-16",
-          "diary": "I'm feeling positive today.",
+          "diary": "Felt a bit low, not much energy today.",
           "emotion": {
-            "face": { "label": "happy", "confidence": 0.90 },
-            "text": { "label": "happy", "confidence": 0.82 },
-            "final": "happy",
+            "face": { "label": "sad", "confidence": 0.76 },
+            "text": { "label": "sad", "confidence": 0.79 },
+            "voice": { "label": "sad", "confidence": 0.78 },
+            "final": "sad",
             "candidates": [
-              { "label": "happy", "confidence": 0.90 },
-              { "label": "calm", "confidence": 0.06 },
-              { "label": "neutral", "confidence": 0.04 }
+              { "label": "sad",   "confidence": 0.78 },
+              { "label": "happy", "confidence": 0.11 },
+              { "label": "angry", "confidence": 0.11 }
             ]
           }
         },
         {
           "date": "2025-11-17",
-          "diary": "Still cheerful.",
+          "diary": "Some conflict made me a bit angry, but I calmed down later.",
           "emotion": {
-            "face": { "label": "happy", "confidence": 0.92 },
-            "text": { "label": "happy", "confidence": 0.85 },
-            "final": "happy",
+            "face": { "label": "angry", "confidence": 0.67 },
+            "text": { "label": "angry", "confidence": 0.7 },
+            "voice": { "label": "angry", "confidence": 0.69 },
+            "final": "angry",
             "candidates": [
-              { "label": "happy", "confidence": 0.92 },
-              { "label": "calm", "confidence": 0.05 },
-              { "label": "neutral", "confidence": 0.03 }
+              { "label": "angry", "confidence": 0.69 },
+              { "label": "sad",   "confidence": 0.18 },
+              { "label": "happy", "confidence": 0.13 }
             ]
           }
         },
         {
           "date": "2025-11-18",
-          "diary": "A bright morning and happy mood.",
+          "diary": "Good news from a friend, feeling lighter.",
           "emotion": {
-            "face": { "label": "happy", "confidence": 0.91 },
+            "face": { "label": "happy", "confidence": 0.81 },
             "text": { "label": "happy", "confidence": 0.83 },
+            "voice": { "label": "happy", "confidence": 0.82 },
             "final": "happy",
             "candidates": [
-              { "label": "happy", "confidence": 0.91 },
-              { "label": "calm", "confidence": 0.05 },
-              { "label": "neutral", "confidence": 0.04 }
+              { "label": "happy", "confidence": 0.82 },
+              { "label": "sad",   "confidence": 0.10 },
+              { "label": "angry", "confidence": 0.08 }
             ]
           }
         },
         {
           "date": "2025-11-19",
-          "diary": "Feeling very upbeat today.",
+          "diary": "Long tiring day, mood was a bit sad.",
           "emotion": {
-            "face": { "label": "happy", "confidence": 0.93 },
-            "text": { "label": "happy", "confidence": 0.88 },
-            "final": "happy",
+            "face": { "label": "sad", "confidence": 0.73 },
+            "text": { "label": "sad", "confidence": 0.75 },
+            "voice": { "label": "sad", "confidence": 0.74 },
+            "final": "sad",
             "candidates": [
-              { "label": "happy", "confidence": 0.93 },
-              { "label": "calm", "confidence": 0.04 },
-              { "label": "neutral", "confidence": 0.03 }
+              { "label": "sad",   "confidence": 0.74 },
+              { "label": "happy", "confidence": 0.15 },
+              { "label": "angry", "confidence": 0.11 }
             ]
           }
         },
         {
           "date": "2025-11-20",
-          "diary": "Everything feels positive.",
+          "diary": "Got irritated in traffic, felt angry for a while.",
           "emotion": {
-            "face": { "label": "happy", "confidence": 0.90 },
-            "text": { "label": "happy", "confidence": 0.84 },
-            "final": "happy",
+            "face": { "label": "angry", "confidence": 0.74 },
+            "text": { "label": "angry", "confidence": 0.77 },
+            "voice": { "label": "angry", "confidence": 0.76 },
+            "final": "angry",
             "candidates": [
-              { "label": "happy", "confidence": 0.90 },
-              { "label": "calm", "confidence": 0.06 },
-              { "label": "neutral", "confidence": 0.04 }
+              { "label": "angry", "confidence": 0.76 },
+              { "label": "sad",   "confidence": 0.13 },
+              { "label": "happy", "confidence": 0.11 }
             ]
           }
         },
         {
           "date": "2025-11-21",
-          "diary": "Still happy today 😊",
+          "diary": "Very good day overall, feeling grateful and happy.",
           "emotion": {
-            "face": { "label": "happy", "confidence": 0.94 },
-            "text": { "label": "happy", "confidence": 0.89 },
+            "face": { "label": "happy", "confidence": 0.9 },
+            "text": { "label": "happy", "confidence": 0.92 },
+            "voice": { "label": "happy", "confidence": 0.91 },
             "final": "happy",
             "candidates": [
-              { "label": "happy", "confidence": 0.94 },
-              { "label": "calm", "confidence": 0.04 },
-              { "label": "neutral", "confidence": 0.02 }
+              { "label": "happy", "confidence": 0.91 },
+              { "label": "sad",   "confidence": 0.05 },
+              { "label": "angry", "confidence": 0.04 }
             ]
           }
         }

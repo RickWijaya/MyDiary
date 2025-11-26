@@ -10,6 +10,8 @@ const CONFIDENCE_THRESHOLD = 0.7; // 70%
 let webcamStream = null;
 let capturedImageDataUrl = null;
 let emotionChart = null;
+let highlightedEmotion = null;
+let legendClickFlag = false;
 let userEntries = [];
 let pendingCheckinContext = null;
 
@@ -30,8 +32,42 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCheckinOpenButton();
   setupCheckinButton();
   setupAudioRecording();
+  initClock();       
   loadUserData();
 });
+
+function initClock() {
+  const clockEl = document.getElementById("clock");
+  if (!clockEl) return;
+
+  function updateClock() {
+    const now = new Date();
+
+    // Force Asia/Jakarta (WIB) regardless of user OS timezone
+    const dateFormatter = new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "Asia/Jakarta"
+    });
+
+    const timeFormatter = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Jakarta"
+    });
+
+    const dateStr = dateFormatter.format(now);   // YYYY-MM-DD
+    const timeStr = timeFormatter.format(now);   // HH:MM:SS
+
+    clockEl.textContent = `${dateStr} · ${timeStr} WIB`;
+  }
+
+  updateClock();
+  setInterval(updateClock, 1000);
+}
 
 // ===== HELPER: today as local YYYY-MM-DD =====
 function getTodayString() {
@@ -81,46 +117,132 @@ function updateStreakAndRecap(streak, recapArray) {
     recapList.appendChild(li);
   }
 }
+function applyHighlightStyles() {
+  if (!emotionChart) return;
 
+  emotionChart.data.datasets.forEach((ds) => {
+    const isHighlighted = !highlightedEmotion || ds.label === highlightedEmotion;
+
+    ds.borderWidth = isHighlighted ? 3 : 1;
+    ds.borderColor = isHighlighted
+      ? ds.borderColor.replace(/0\.?\d*\)$/, "1)")
+      : ds.borderColor.replace("1)", "0.18)");
+    ds.pointRadius = isHighlighted ? 3 : 1.5;
+    ds.pointBackgroundColor = isHighlighted
+      ? ds.pointBackgroundColor
+      : ds.pointBackgroundColor.replace("1)", "0.3)");
+  });
+}
 // ===== CHART =====
+// ===== CHART (SIMPLE BAR, ONE BAR PER DAY BY FINAL EMOTION) =====
 function updateChart(entries) {
   const ctx = document.getElementById("emotionChart").getContext("2d");
 
-  const map = {};
+  // Map date -> candidates { happy: x, sad: y, angry: z }
+  // And date -> diary/transcript
+  const dateMap = {};   // { "2025-11-12": { happy: 76.23, sad: 12.01, angry: 11.76 }, ... }
+  const diaryMap = {};  // { "2025-11-12": "Had a productive day..." }
+
   entries.forEach((e) => {
-    if (!e.date || !e.emotion || !e.emotion.final) return;
-    map[e.date] = e.emotion.final;
+    if (!e.date || !e.emotion || !Array.isArray(e.emotion.candidates)) return;
+
+    const row = { happy: 0, sad: 0, angry: 0 };
+    e.emotion.candidates.forEach((c) => {
+      const label = (c.label || "").toLowerCase();
+      if (label === "happy" || label === "sad" || label === "angry") {
+        const v = Number(c.confidence) || 0;
+        row[label] = Number((v * 100).toFixed(2)); // 0–100 with 2 decimals
+      }
+    });
+
+    dateMap[e.date] = row;
+    diaryMap[e.date] = e.diary || ""; // save transcript/diary for tooltip
   });
 
-  const dates = Object.keys(map).sort();
+  const dates = Object.keys(dateMap).sort();
   const EMOTIONS = ["happy", "sad", "angry"];
 
-  const colors = [
-    "rgba(34, 197, 94, 0.8)",   // happy - green
-    "rgba(239, 68, 68, 0.8)",   // sad - red
-    "rgba(234, 179, 8, 0.8)"    // angry - yellow
-  ];
+  const baseColors = {
+    happy: "rgba(34, 197, 94, 1)",   // green
+    sad:   "rgba(59, 130, 246, 1)",  // blue
+    angry: "rgba(239, 68, 68, 1)"    // red
+  };
 
-  const datasets = EMOTIONS.map((label, idx) => ({
-    label,
-    data: dates.map((d) => (map[d] && map[d].toLowerCase() === label ? 1 : 0)),
+  const datasets = EMOTIONS.map((emotion) => ({
+    label: emotion,
+    data: dates.map((d) => (dateMap[d] ? dateMap[d][emotion] : 0)),
     fill: false,
-    borderColor: colors[idx],
-    tension: 0.2
+    borderColor: baseColors[emotion],
+    borderWidth: 2,
+    tension: 0.25,
+    pointRadius: 3,
+    pointHoverRadius: 4,
+    pointBackgroundColor: baseColors[emotion]
   }));
 
   if (emotionChart) emotionChart.destroy();
 
   emotionChart = new Chart(ctx, {
     type: "line",
-    data: { labels: dates, datasets },
+    data: {
+      labels: dates,
+      datasets
+    },
     options: {
       responsive: true,
-      plugins: { legend: { display: true } },
-      scales: { y: { beginAtZero: true, suggestedMax: 1 } }
+      plugins: {
+        legend: {
+          display: true,
+          labels: { usePointStyle: true },
+          onClick: (e, legendItem, legend) => {
+            legendClickFlag = true;
+
+            const clickedEmotion = legendItem.text; // "happy" / "sad" / "angry"
+            if (highlightedEmotion === clickedEmotion) {
+              highlightedEmotion = null;
+            } else {
+              highlightedEmotion = clickedEmotion;
+            }
+
+            applyHighlightStyles();
+            emotionChart.update();
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const emo = context.dataset.label;
+              const val = context.parsed.y;
+              const date = context.label;
+              const diary = diaryMap[date] || "(no diary recorded)";
+
+              // multiple lines in tooltip
+              return [
+                `${emo}: ${val.toFixed(2)}%`,
+                `Diary: ${diary}`
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          suggestedMax: 100,
+          ticks: {
+            callback: (value) => `${value}%`
+          }
+        },
+        x: {
+          grid: { display: false }
+        }
+      }
     }
   });
+
+  applyHighlightStyles();
 }
+
 
 // ===== CHECK-IN PANEL =====
 function updateCheckinPanel(entries) {

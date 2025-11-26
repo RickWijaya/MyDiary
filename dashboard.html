@@ -11,28 +11,48 @@
 <body class="min-h-screen bg-white">
   <!-- Top bar -->
   <header class="bg-black text-white shadow-lg">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-      <div class="flex items-center gap-2">
-        <span class="inline-flex h-8 w-8 rounded-xl bg-orange-500 text-black items-center justify-center font-black text-lg">
-          ET
-        </span>
-        <div>
-          <h1 class="text-lg md:text-xl font-bold leading-tight">
-            Daily Emotion Tracker
-          </h1>
-          <p class="text-xs text-white/70">
-            Face check-in • Voice diary • Mood analytics
-          </p>
-        </div>
-      </div>
-      <div class="flex items-center gap-4 text-xs md:text-sm">
-        <div class="text-right">
-          <p class="text-white/60">Logged in as</p>
-          <p class="font-semibold text-orange-400" id="userEmail"></p>
-        </div>
+  <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+    <div class="flex items-center gap-2">
+      <span class="inline-flex h-8 w-8 rounded-xl bg-orange-500 text-black items-center justify-center font-black text-lg">
+        ET
+      </span>
+      <div>
+        <h1 class="text-lg md:text-xl font-bold leading-tight">
+          Daily Emotion Tracker
+        </h1>
+        <p class="text-xs text-white/70">
+          Face check-in • Voice diary • Mood analytics
+        </p>
       </div>
     </div>
-  </header>
+
+    <div class="flex items-center gap-4 text-xs md:text-sm">
+      <!-- Clock (WIB) -->
+      <div class="text-right hidden sm:block">
+        <p class="text-white/60">WIB time</p>
+        <p class="font-mono text-xs md:text-sm text-orange-300" id="clock">
+          --
+        </p>
+      </div>
+
+      <!-- User email -->
+      <div class="text-right">
+        <p class="text-white/60">Logged in as</p>
+        <p class="font-semibold text-orange-400" id="userEmail"></p>
+      </div>
+
+      <!-- Logout -->
+      <form method="POST" action="backend/logout.php">
+        <button
+          class="px-3 py-1.5 rounded-xl bg-orange-500 text-black font-semibold hover:bg-orange-600 text-xs md:text-sm active:translate-y-[1px]"
+        >
+          Logout
+        </button>
+      </form>
+    </div>
+  </div>
+</header>
+
 
   <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
     <!-- Summary row: streak + recap -->
