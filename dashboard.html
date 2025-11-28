@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>Dashboard - Daily Emotion Tracker</title>
@@ -8,50 +9,51 @@
   <link rel="stylesheet" href="assets/css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body class="min-h-screen bg-white">
   <!-- Top bar -->
   <header class="bg-black text-white shadow-lg">
-  <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-    <div class="flex items-center gap-2">
-      <span class="inline-flex h-8 w-8 rounded-xl bg-orange-500 text-black items-center justify-center font-black text-lg">
-        ET
-      </span>
-      <div>
-        <h1 class="text-lg md:text-xl font-bold leading-tight">
-          Daily Emotion Tracker
-        </h1>
-        <p class="text-xs text-white/70">
-          Face check-in • Voice diary • Mood analytics
-        </p>
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span
+          class="inline-flex h-8 w-8 rounded-xl bg-orange-500 text-black items-center justify-center font-black text-lg">
+          ET
+        </span>
+        <div>
+          <h1 class="text-lg md:text-xl font-bold leading-tight">
+            Daily Emotion Tracker
+          </h1>
+          <p class="text-xs text-white/70">
+            Face check-in • Voice diary • Mood analytics
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4 text-xs md:text-sm">
+        <!-- Clock (WIB) -->
+        <div class="text-right hidden sm:block">
+          <p class="text-white/60">WIB time</p>
+          <p class="font-mono text-xs md:text-sm text-orange-300" id="clock">
+            --
+          </p>
+        </div>
+
+        <!-- User email -->
+        <div class="text-right">
+          <p class="text-white/60">Logged in as</p>
+          <p class="font-semibold text-orange-400" id="userEmail"></p>
+        </div>
+
+        <!-- Logout -->
+        <form method="POST" action="backend/logout.php">
+          <button
+            class="px-3 py-1.5 rounded-xl bg-orange-500 text-black font-semibold hover:bg-orange-600 text-xs md:text-sm active:translate-y-[1px]">
+            Logout
+          </button>
+        </form>
       </div>
     </div>
-
-    <div class="flex items-center gap-4 text-xs md:text-sm">
-      <!-- Clock (WIB) -->
-      <div class="text-right hidden sm:block">
-        <p class="text-white/60">WIB time</p>
-        <p class="font-mono text-xs md:text-sm text-orange-300" id="clock">
-          --
-        </p>
-      </div>
-
-      <!-- User email -->
-      <div class="text-right">
-        <p class="text-white/60">Logged in as</p>
-        <p class="font-semibold text-orange-400" id="userEmail"></p>
-      </div>
-
-      <!-- Logout -->
-      <form method="POST" action="backend/logout.php">
-        <button
-          class="px-3 py-1.5 rounded-xl bg-orange-500 text-black font-semibold hover:bg-orange-600 text-xs md:text-sm active:translate-y-[1px]"
-        >
-          Logout
-        </button>
-      </form>
-    </div>
-  </div>
-</header>
+  </header>
 
 
   <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
@@ -82,7 +84,8 @@
           <h2 class="text-sm font-semibold tracking-wide text-black/80">
             Recap insights
           </h2>
-          <span class="px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] bg-orange-500/10 text-orange-500 border border-orange-500/40 rounded-full">
+          <span
+            class="px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] bg-orange-500/10 text-orange-500 border border-orange-500/40 rounded-full">
             LAST 7 DAYS
           </span>
         </div>
@@ -135,6 +138,12 @@
           <span class="font-semibold">Diary (auto from voice):</span>
           <span id="todayDiary"></span>
         </p>
+        <div class="mt-2 pt-2 border-t border-orange-500/20">
+          <p class="text-xs md:text-sm text-black/80">
+            <span class="font-semibold">Recommendation:</span>
+            <span id="todayRecommendation" class="italic text-black/70"></span>
+          </p>
+        </div>
       </div>
 
       <!-- If not checked in: show button -->
@@ -142,10 +151,8 @@
         <p class="text-xs md:text-sm text-black/70" id="checkinStatus">
           You haven't checked in yet today.
         </p>
-        <button
-          id="checkInOpenBtn"
-          class="ml-3 bg-black text-white px-4 py-2 rounded-xl text-xs md:text-sm font-semibold hover:bg-black/90 active:translate-y-[1px]"
-        >
+        <button id="checkInOpenBtn"
+          class="ml-3 bg-black text-white px-4 py-2 rounded-xl text-xs md:text-sm font-semibold hover:bg-black/90 active:translate-y-[1px]">
           Check in today
         </button>
       </div>
@@ -153,17 +160,11 @@
   </main>
 
   <!-- Check-in popup modal -->
-  <div
-    id="checkinModal"
-    class="fixed inset-0 bg-black/50 flex items-center justify-center z-40 hidden"
-  >
+  <div id="checkinModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-40 hidden">
     <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-4 p-4 md:p-6 border border-black/5">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-lg font-bold text-black">Today's Check-in</h3>
-        <button
-          id="closeCheckinModalBtn"
-          class="text-xs text-black/60 hover:text-black"
-        >
+        <button id="closeCheckinModalBtn" class="text-xs text-black/60 hover:text-black">
           ✕ Close
         </button>
       </div>
@@ -174,20 +175,14 @@
           <div class="aspect-video bg-black rounded-2xl overflow-hidden mb-2 border border-black/40">
             <video id="webcam" autoplay playsinline class="w-full h-full object-cover"></video>
           </div>
-          <button
-            id="captureBtn"
-            class="w-full bg-black text-white py-2 rounded-xl text-xs md:text-sm font-semibold hover:bg-black/90 active:translate-y-[1px]"
-          >
+          <button id="captureBtn"
+            class="w-full bg-black text-white py-2 rounded-xl text-xs md:text-sm font-semibold hover:bg-black/90 active:translate-y-[1px]">
             Capture face
           </button>
           <p class="text-[11px] text-black/50 mt-1">
             We capture a single frame and send it to the AI for emotion detection.
           </p>
-          <img
-            id="capturePreview"
-            class="mt-2 rounded-xl hidden border border-black/10"
-            alt="Captured frame preview"
-          />
+          <img id="capturePreview" class="mt-2 rounded-xl hidden border border-black/10" alt="Captured frame preview" />
         </div>
 
         <!-- Voice diary -->
@@ -197,40 +192,27 @@
           <!-- Audio controls -->
           <div class="border border-black/10 rounded-2xl p-3 mb-3">
             <div class="flex items-center justify-between mb-2">
-              <button
-                id="recordBtn"
-                class="flex items-center gap-2 bg-orange-500 text-black px-3 py-1.5 rounded-xl text-xs md:text-sm font-semibold hover:bg-orange-600 active:translate-y-[1px]"
-              >
+              <button id="recordBtn"
+                class="flex items-center gap-2 bg-orange-500 text-black px-3 py-1.5 rounded-xl text-xs md:text-sm font-semibold hover:bg-orange-600 active:translate-y-[1px]">
                 🎙 Start recording
               </button>
-              <audio
-                id="audioPlayback"
-                controls
-                class="hidden w-40 md:w-48"
-              ></audio>
+              <audio id="audioPlayback" controls class="hidden w-40 md:w-48"></audio>
             </div>
             <p id="recordStatus" class="text-[11px] text-black/60 mb-1">
               Tap the mic to record your voice diary.
             </p>
-            <canvas
-              id="audioWaveCanvas"
-              class="w-full h-16 bg-black/5 rounded-xl border border-black/5"
-            ></canvas>
+            <canvas id="audioWaveCanvas" class="w-full h-16 bg-black/5 rounded-xl border border-black/5"></canvas>
           </div>
 
           <!-- Transcript display (read-only) -->
           <h5 class="text-[11px] font-semibold mb-1 text-black/70">Transcript (auto from voice)</h5>
-          <div
-            id="transcriptDisplay"
-            class="min-h-[72px] text-xs md:text-sm border border-black/10 rounded-2xl px-3 py-2 bg-black/5 text-black/80"
-          >
+          <div id="transcriptDisplay"
+            class="min-h-[72px] text-xs md:text-sm border border-black/10 rounded-2xl px-3 py-2 bg-black/5 text-black/80">
             Your transcript will appear here after recording.
           </div>
 
-          <button
-            id="submitCheckinBtn"
-            class="mt-3 w-full bg-orange-500 text-black py-2 rounded-xl text-xs md:text-sm font-semibold hover:bg-orange-600 disabled:opacity-60 active:translate-y-[1px]"
-          >
+          <button id="submitCheckinBtn"
+            class="mt-3 w-full bg-orange-500 text-black py-2 rounded-xl text-xs md:text-sm font-semibold hover:bg-orange-600 disabled:opacity-60 active:translate-y-[1px]">
             Submit today's check-in
           </button>
         </div>
@@ -239,10 +221,7 @@
   </div>
 
   <!-- Emotion confirmation modal -->
-  <div
-    id="emotionModal"
-    class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden"
-  >
+  <div id="emotionModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-black/5">
       <h3 class="text-lg font-bold mb-2 text-black">
         Confirm your emotion
@@ -253,16 +232,12 @@
         Is this correct?
       </p>
       <div class="flex justify-end gap-2">
-        <button
-          id="emotionNoBtn"
-          class="px-3 py-1.5 rounded-xl border border-black/10 text-sm text-black hover:bg-black/5"
-        >
+        <button id="emotionNoBtn"
+          class="px-3 py-1.5 rounded-xl border border-black/10 text-sm text-black hover:bg-black/5">
           No, that’s not right
         </button>
-        <button
-          id="emotionYesBtn"
-          class="px-3 py-1.5 rounded-xl bg-orange-500 text-black text-sm font-semibold hover:bg-orange-600"
-        >
+        <button id="emotionYesBtn"
+          class="px-3 py-1.5 rounded-xl bg-orange-500 text-black text-sm font-semibold hover:bg-orange-600">
           Yes, that’s correct
         </button>
       </div>
@@ -271,4 +246,5 @@
 
   <script src="assets/js/dashboard.js"></script>
 </body>
+
 </html>

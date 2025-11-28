@@ -25,6 +25,13 @@ let audioContext = null;
 let analyserNode = null;
 let pendingAudioCandidates = [];
 let currentTranscript = ""; // auto diary text from voice
+let recognition = null; // Web Speech API instance
+
+const EMOTION_RECOMMENDATIONS = {
+  happy: "Keep up the great work! Share your joy with others.",
+  sad: "It's okay to feel sad. Take a short walk or listen to some calming music.",
+  angry: "Take deep breaths. Try to step away from the situation for a moment."
+};
 
 // ===== INIT =====
 document.addEventListener("DOMContentLoaded", () => {
@@ -32,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCheckinOpenButton();
   setupCheckinButton();
   setupAudioRecording();
-  initClock();       
+  initClock();
   loadUserData();
 });
 
@@ -164,7 +171,7 @@ function updateChart(entries) {
 
   const baseColors = {
     happy: "rgba(34, 197, 94, 1)",   // green
-    sad:   "rgba(59, 130, 246, 1)",  // blue
+    sad: "rgba(59, 130, 246, 1)",  // blue
     angry: "rgba(239, 68, 68, 1)"    // red
   };
 
@@ -263,6 +270,9 @@ function updateCheckinPanel(entries) {
       todayEntry.emotion && todayEntry.emotion.final ? todayEntry.emotion.final : "-";
     document.getElementById("todayDiary").textContent = todayEntry.diary || "-";
 
+    const finalEmo = todayEntry.emotion && todayEntry.emotion.final ? todayEntry.emotion.final : "happy";
+    document.getElementById("todayRecommendation").textContent = EMOTION_RECOMMENDATIONS[finalEmo] || EMOTION_RECOMMENDATIONS.happy;
+
     ctaText.textContent = "You have already checked in today.";
     openBtn.disabled = true;
     openBtn.classList.add("opacity-60", "cursor-not-allowed");
@@ -359,6 +369,48 @@ function captureFrame() {
 
 // ===== AUDIO RECORDING + WAVEFORM =====
 function setupAudioRecording() {
+  // Initialize Web Speech API if available
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US'; // Default to English
+
+    recognition.onresult = (event) => {
+      let final = "";
+      let interim = "";
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          final += event.results[i][0].transcript;
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+
+      // Update UI and variable
+      const display = document.getElementById("transcriptDisplay");
+      const text = final + interim;
+      if (text.trim()) {
+        // If we have previous content and this is a new segment, we might want to handle it,
+        // but for this simple implementation, we'll just show what the API returns for the current session.
+        // To support multiple start/stops appending, we'd need more logic.
+        // For now, let's assume one recording session per check-in or just overwrite.
+        // Actually, let's append to the global currentTranscript if it's a new session? 
+        // Simpler: just update currentTranscript with what we hear now.
+        currentTranscript = text;
+        display.textContent = currentTranscript;
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event.error);
+    };
+  } else {
+    console.warn("Web Speech API not supported in this browser.");
+  }
+
   const recordBtn = document.getElementById("recordBtn");
   recordBtn.addEventListener("click", async () => {
     if (!mediaRecorder || mediaRecorder.state === "inactive") {
@@ -415,11 +467,12 @@ async function startRecording() {
       const audioResult = await sendAudioToAPI(recordedAudioBlob);
 
       // transcript
-      if (audioResult && audioResult.transcript) {
+      // Only use API transcript if we didn't get one from Web Speech API
+      if (audioResult && audioResult.transcript && !currentTranscript) {
         currentTranscript = audioResult.transcript;
         const transcriptDisplay = document.getElementById("transcriptDisplay");
         transcriptDisplay.textContent = currentTranscript;
-      } else {
+      } else if (!currentTranscript) {
         currentTranscript = "";
       }
 
@@ -434,12 +487,27 @@ async function startRecording() {
 
   mediaRecorder.start();
 
+  if (recognition) {
+    try {
+      recognition.start();
+    } catch (e) {
+      console.warn("Recognition already started or error:", e);
+    }
+  }
+
   startAudioWave(audioStream);
 }
 
 function stopRecording() {
   if (mediaRecorder && mediaRecorder.state === "recording") {
     mediaRecorder.stop();
+  }
+  if (recognition) {
+    try {
+      recognition.stop();
+    } catch (e) {
+      console.warn("Recognition stop error:", e);
+    }
   }
 }
 
