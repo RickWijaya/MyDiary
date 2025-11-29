@@ -198,21 +198,6 @@
                         "angry": 0
                     },
                     "final": "happy"
-                },
-                {
-                    "date": "2025-11-29",
-                    "diary": "This is a simulated transcript.",
-                    "face": {
-                        "happy": 0.000264000264000264,
-                        "sad": 0.9945799945799945,
-                        "angry": 0.005156005156005156
-                    },
-                    "voice": {
-                        "happy": 0,
-                        "sad": 0,
-                        "angry": 0
-                    },
-                    "final": "sad"
                 }
             ]
         }
