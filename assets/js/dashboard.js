@@ -1,9 +1,9 @@
 // assets/js/dashboard.js
 
 // ===== CONFIG =====
-const ROBOFLOW_API_KEY = "LH7a1zJFy9rcoIoMhh0C";
-const ROBOFLOW_MODEL = "facial-emotion-recognition-e8skk";
-const ROBOFLOW_VERSION = "2";
+const ROBOFLOW_WORKFLOW_URL =
+  "https://serverless.roboflow.com/ricky-jvxxd/workflows/custom-workflow-6";
+const ROBOFLOW_API_KEY = "LH7a1zJFy9rcoIoMhh0C"; // put your real key here
 
 const TEXT_API_URL = "https://colab-example-url/text";   // placeholder
 const AUDIO_API_URL = "https://colab-example-url/audio"; // placeholder
@@ -43,8 +43,41 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCheckinButton();
   setupAudioRecording();
   initClock();
+  setupEmotionFilterButtons(); 
   loadUserData();
 });
+
+// ===== EMOTION FILTER BUTTONS (All / Happy / Sad / Angry) =====
+function setupEmotionFilterButtons() {
+  const buttons = document.querySelectorAll(".emotion-toggle-btn");
+  if (!buttons.length) return;
+
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const emotion = btn.getAttribute("data-emotion"); // all | happy | sad | angry
+      setEmotionFilter(emotion);
+    });
+  });
+}
+
+function setEmotionFilter(emotion) {
+  // emotion: "all" | "happy" | "sad" | "angry"
+  highlightedEmotion = emotion === "all" ? null : emotion; // null = show all
+  updateEmotionFilterButtonStyles(emotion);
+  applyEmotionHighlight();
+}
+
+function updateEmotionFilterButtonStyles(activeEmotion) {
+  const buttons = document.querySelectorAll(".emotion-toggle-btn");
+  buttons.forEach((btn) => {
+    const emo = btn.getAttribute("data-emotion");
+    if (emo === activeEmotion) {
+      btn.classList.add("bg-orange-500", "text-white");
+    } else {
+      btn.classList.remove("bg-orange-500", "text-white");
+    }
+  });
+}
 
 // ===== CLOCK (WIB) =====
 function initClock() {
@@ -69,8 +102,8 @@ function initClock() {
       timeZone: "Asia/Jakarta"
     });
 
-    const dateStr = dateFormatter.format(now);   // YYYY-MM-DD
-    const timeStr = timeFormatter.format(now);   // HH:MM:SS
+    const dateStr = dateFormatter.format(now); // YYYY-MM-DD
+    const timeStr = timeFormatter.format(now); // HH:MM:SS
 
     clockEl.textContent = `${dateStr} · ${timeStr} WIB`;
   }
@@ -81,7 +114,7 @@ function initClock() {
 
 // ===== HELPER: today as local YYYY-MM-DD =====
 function getTodayString() {
-  return new Date().toLocaleDateString("en-CA"); // will be WIB if browser is WIB
+  return new Date().toLocaleDateString("en-CA"); // WIB if browser is WIB
 }
 
 // ===== LOAD USER DATA =====
@@ -128,7 +161,7 @@ function updateStreakAndRecap(streak, recapArray) {
   }
 }
 
-// (kept but no longer used – safe)
+// (kept but not currently used – safe)
 function applyHighlightStyles() {
   if (!emotionChart) return;
 
@@ -197,17 +230,20 @@ function updateChart(entries) {
     angryData.push(aVal);
   });
 
-  // create per-line gradients
-  function makeGradient(colorRgb) {
+  // create per-line gradients (strong + dim)
+  function makeGradient(colorRgb, alphaTop) {
     const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grad.addColorStop(0, colorRgb.replace("1)", "0.35)")); // strong top
-    grad.addColorStop(1, colorRgb.replace("1)", "0)"));    // fade bottom
+    grad.addColorStop(0, colorRgb.replace("1)", `${alphaTop})`));
+    grad.addColorStop(1, colorRgb.replace("1)", "0)"));
     return grad;
   }
 
-  const happyGradient = makeGradient("rgba(34, 197, 94, 1)");
-  const sadGradient   = makeGradient("rgba(59, 130, 246, 1)");
-  const angryGradient = makeGradient("rgba(239, 68, 68, 1)");
+  const happyGradient     = makeGradient(COLORS.happy, 0.35);
+  const happyDimGradient  = makeGradient(COLORS.happy, 0.10);
+  const sadGradient       = makeGradient(COLORS.sad,   0.35);
+  const sadDimGradient    = makeGradient(COLORS.sad,   0.10);
+  const angryGradient     = makeGradient(COLORS.angry, 0.35);
+  const angryDimGradient  = makeGradient(COLORS.angry, 0.10);
 
   emotionChart = new Chart(ctx, {
     type: "line",
@@ -216,35 +252,47 @@ function updateChart(entries) {
       datasets: [
         {
           label: "Happy",
+          emotionKey: "happy",         // ⬅️ custom
+          baseColor: COLORS.happy,     // ⬅️ custom
+          baseGradient: happyGradient, // ⬅️ custom
+          dimGradient: happyDimGradient,
           data: happyData,
           borderColor: COLORS.happy,
           backgroundColor: happyGradient,
           tension: 0.35,
           borderWidth: 3,
           pointRadius: 4,
-          pointHoverRadius: 6,
+          pointHoverRadius: 4, // same as pointRadius → no hover "jump"
           fill: true
         },
         {
           label: "Sad",
+          emotionKey: "sad",
+          baseColor: COLORS.sad,
+          baseGradient: sadGradient,
+          dimGradient: sadDimGradient,
           data: sadData,
           borderColor: COLORS.sad,
           backgroundColor: sadGradient,
           tension: 0.35,
           borderWidth: 3,
           pointRadius: 4,
-          pointHoverRadius: 6,
+          pointHoverRadius: 4,
           fill: true
         },
         {
           label: "Angry",
+          emotionKey: "angry",
+          baseColor: COLORS.angry,
+          baseGradient: angryGradient,
+          dimGradient: angryDimGradient,
           data: angryData,
           borderColor: COLORS.angry,
           backgroundColor: angryGradient,
           tension: 0.35,
           borderWidth: 3,
           pointRadius: 4,
-          pointHoverRadius: 6,
+          pointHoverRadius: 4,
           fill: true
         }
       ]
@@ -257,6 +305,7 @@ function updateChart(entries) {
           position: "top"
         },
         tooltip: {
+          // tooltip still works, but no hover-thick-line effect
           callbacks: {
             label: (ctx) => {
               const emo = ctx.dataset.label;
@@ -285,6 +334,35 @@ function updateChart(entries) {
       }
     }
   });
+
+  // Apply current filter (e.g. when data reloads after save)
+  applyEmotionHighlight();
+}
+
+// Highlight selected emotion + dim others
+function applyEmotionHighlight() {
+  if (!emotionChart) return;
+
+  const selected = highlightedEmotion; // null | "happy" | "sad" | "angry"
+
+  emotionChart.data.datasets.forEach((ds) => {
+    const key = ds.emotionKey; // "happy" | "sad" | "angry"
+    const isActive = !selected || selected === key;
+
+    // Full vs dim color
+    const fullColor = ds.baseColor;
+    const dimColor = fullColor.replace("1)", "0.25)");
+
+    ds.borderColor = isActive ? fullColor : dimColor;
+    ds.backgroundColor = isActive ? ds.baseGradient : ds.dimGradient;
+
+    // Thickness + point size
+    ds.borderWidth = isActive ? 3 : 1.5;
+    ds.pointRadius = isActive ? 4 : 2;
+    ds.pointHoverRadius = ds.pointRadius; // no hover jump
+  });
+
+  emotionChart.update();
 }
 
 // ===== CHECK-IN PANEL =====
@@ -594,13 +672,16 @@ function stopAudioWave() {
   }
 }
 
-// ===== GRADIO / ROBOFLOW / COLAB API CALLS =====
+// ===== GRADIO / WORKFLOW / COLAB API CALLS =====
+
+// Generic normalizer for text/audio APIs (NOT for new face workflow)
 function normalizeCandidates(apiResponse) {
   if (!apiResponse) return [];
 
-  // Roboflow-like: { predictions: [ { class: "...", confidence: ... }, ... ] }
+  // { predictions: [...] }
   if (Array.isArray(apiResponse.predictions)) {
     return apiResponse.predictions.map((p) => ({
+
       label: p.class || p.label,
       confidence: Number(p.confidence)
     }));
@@ -622,6 +703,7 @@ const EMOTION_BUCKET_MAP = {
   joy: "happy",
   excited: "happy",
   surprise: "happy",
+  surprised: "happy",
   neutral: "happy",
   calm: "happy",
 
@@ -639,41 +721,145 @@ const EMOTION_BUCKET_MAP = {
   contempt: "angry"
 };
 
-function reduceToThreeEmotions(predictions) {
-  const scores = { happy: 0, sad: 0, angry: 0 };
+// ======================================================
+// REDUCE candidates → 3 EMOTIONS (0–1)
+// (used for text/audio)
+// ======================================================
+function reduceToThreeEmotions(candidates) {
+  if (!Array.isArray(candidates) || !candidates.length) return [];
 
-  predictions.forEach((p) => {
-    const raw = (p.label || "").toLowerCase();
-    const bucket = EMOTION_BUCKET_MAP[raw];
-    if (!bucket) return;
-    scores[bucket] = Math.max(scores[bucket], Number(p.confidence) || 0);
-  });
+  const sums = { happy: 0, sad: 0, angry: 0 };
+
+  for (const c of candidates) {
+    const rawLabel = (c.label || c.class || c.emotion || "").toLowerCase();
+    const bucket = EMOTION_BUCKET_MAP[rawLabel];
+    if (!bucket) continue;
+
+    const conf = typeof c.confidence === "number" ? c.confidence : 0;
+    if (conf <= 0) continue;
+
+    sums[bucket] += conf;
+  }
+
+  const total = sums.happy + sums.sad + sums.angry;
+  if (total <= 0) return [];
 
   const result = [
-    { label: "happy", confidence: scores.happy },
-    { label: "sad", confidence: scores.sad },
-    { label: "angry", confidence: scores.angry }
+    { label: "happy", confidence: sums.happy / total },
+    { label: "sad",   confidence: sums.sad   / total },
+    { label: "angry", confidence: sums.angry / total }
   ];
 
-  return result.sort((a, b) => b.confidence - a.confidence);
+  // sort desc so [0] is always strongest
+  result.forEach((r) => (r.confidence = Number(r.confidence.toFixed(6))));
+  result.sort((a, b) => b.confidence - a.confidence);
+  return result;
 }
 
-async function sendFaceToAPI(base64Image) {
-  const pureBase64 = base64Image.split(",")[1];
 
-  const url = `https://detect.roboflow.com/${ROBOFLOW_MODEL}/${ROBOFLOW_VERSION}?api_key=${ROBOFLOW_API_KEY}`;
-
-  const res = await fetch(url, {
+// ============================
+// FACE EMOTION API (Roboflow)
+// ============================
+async function sendFaceToAPI(imageUrl) {
+  const response = await fetch(ROBOFLOW_WORKFLOW_URL, {
     method: "POST",
-    body: pureBase64,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
-    }
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      api_key: ROBOFLOW_API_KEY,
+      inputs: {
+        image: { type: "url", value: imageUrl }
+      }
+    })
   });
 
-  if (!res.ok) throw new Error("Roboflow Face API error");
-  return res.json();
+  if (!response.ok) {
+    console.error("Face API error:", response.status, response.statusText);
+    throw new Error("Face API request failed");
+  }
+
+  const json = await response.json();
+  // We keep the full raw JSON; mapping function will handle the shape
+  return json;
 }
+
+// =========================================
+// MAP ROBOFLOW WORKFLOW → 3 EMOTION BUCKETS
+// =========================================
+function mapFaceWorkflowToThree(raw) {
+  let detections = [];
+
+  // New workflow shape
+  if (raw && raw.outputs && Array.isArray(raw.outputs) && raw.outputs[0]?.predictions) {
+    const p = raw.outputs[0].predictions;
+    if (Array.isArray(p.predictions)) {
+      detections = p.predictions;
+    }
+  }
+
+  // Fallback (old shape)
+  if (!detections.length && Array.isArray(raw) && raw[0]?.predictions) {
+    const p = raw[0].predictions;
+    if (Array.isArray(p.predictions)) {
+      detections = p.predictions;
+    } else if (Array.isArray(p)) {
+      detections = p;
+    }
+  }
+
+  if (!detections.length) {
+    console.warn("No detections found in face workflow response:", raw);
+    return [];
+  }
+
+  // Sum all 4 raw classes
+  const sums = { happy: 0, sad: 0, angry: 0, surprised: 0 };
+
+  for (const det of detections) {
+    const label = det.class;
+    const conf = typeof det.confidence === "number" ? det.confidence : 0;
+    if (conf <= 0) continue;
+    if (label in sums) sums[label] += conf;
+  }
+
+  const total4 = sums.happy + sums.sad + sums.angry + sums.surprised;
+  if (total4 <= 0) {
+    console.warn("All face emotion sums are zero:", sums);
+    return [];
+  }
+
+  // Normalize 4-class distribution
+  let happyP = sums.happy / total4;
+  let sadP = sums.sad / total4;
+  let angryP = sums.angry / total4;
+  let surprisedP = sums.surprised / total4;
+
+  // Merge surprised → happy & sad
+  happyP += surprisedP * 0.7;
+  sadP   += surprisedP * 0.3;
+  surprisedP = 0;
+
+  // Renormalize to 3 classes so they sum to 1
+  const total3 = happyP + sadP + angryP;
+  if (total3 <= 0) {
+    return [];
+  }
+  happyP /= total3;
+  sadP   /= total3;
+  angryP /= total3;
+
+  const result = [
+    { label: "happy", confidence: Number(happyP.toFixed(6)) },
+    { label: "sad",   confidence: Number(sadP.toFixed(6)) },
+    { label: "angry", confidence: Number(angryP.toFixed(6)) }
+  ];
+
+  // Sort so [0] is always the strongest
+  result.sort((a, b) => b.confidence - a.confidence);
+  return result;
+}
+
 
 // Dummy Text API (so flow works without Colab)
 async function sendTextToAPI(text) {
@@ -692,7 +878,7 @@ function blobToDataUrl(blob) {
   });
 }
 
-// Dummy Audio API
+// Dummy Audio API (voice pipeline left as-is / not ready yet)
 async function sendAudioToAPI(audioBlob) {
   console.log("Mocking Audio API");
   return {
@@ -723,15 +909,14 @@ async function handleCheckinSubmit() {
   btn.disabled = true;
 
   try {
+    // New face workflow + text pipeline
     const [faceRes, textRes] = await Promise.all([
       sendFaceToAPI(capturedImageDataUrl),
       sendTextToAPI(currentTranscript)
     ]);
 
-    const faceRaw = normalizeCandidates(faceRes);
+    const faceCandidates = mapFaceWorkflowToThree(faceRes);
     const textRaw = normalizeCandidates(textRes);
-
-    const faceCandidates = reduceToThreeEmotions(faceRaw);
     const textCandidates = reduceToThreeEmotions(textRaw);
     const audioCandidates = pendingAudioCandidates || [];
 
@@ -812,11 +997,19 @@ function candidatesToDistribution(candidates) {
   if (!Array.isArray(candidates)) return dist;
 
   candidates.forEach((c) => {
-    const lbl = (c.label || "").toLowerCase();
+    const lbl = (c.label || c.emotion || "").toLowerCase();
     if (lbl === "happy" || lbl === "sad" || lbl === "angry") {
-      dist[lbl] = c.confidence || 0;
+      dist[lbl] += c.confidence || 0; // use += just in case
     }
   });
+
+  // Optional safety re-normalization to 0–1
+  const total = dist.happy + dist.sad + dist.angry;
+  if (total > 0) {
+    dist.happy /= total;
+    dist.sad   /= total;
+    dist.angry /= total;
+  }
 
   return dist;
 }
@@ -831,8 +1024,8 @@ async function finalizeAndSaveEntry(finalEmotionLabel) {
   const payload = {
     date: ctx.date,
     diary: ctx.diary,     // transcript used as diary
-    face: faceDist,       // { happy, sad, angry }
-    voice: voiceDist,     // { happy, sad, angry }
+    face: faceDist,       // { happy, sad, angry } 0–1
+    voice: voiceDist,     // { happy, sad, angry } 0–1
     final: finalEmotionLabel // "happy" | "sad" | "angry"
   };
 

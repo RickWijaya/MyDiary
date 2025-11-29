@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="assets/css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    #webcam {
+    #webcam, #capturePreview {
   transform: scaleX(-1);
 }
 
@@ -110,6 +110,35 @@
           LINE GRAPH
         </span>
       </div>
+      <div class="mb-4 flex flex-wrap gap-2">
+  <button
+    class="emotion-toggle-btn px-3 py-1 rounded-full border text-sm font-medium bg-orange-500 text-white"
+    data-emotion="all"
+  >
+    All
+  </button>
+  <button
+    class="emotion-toggle-btn px-3 py-1 rounded-full border text-sm font-medium"
+    data-emotion="happy"
+  >
+    Happy
+  </button>
+  <button
+    class="emotion-toggle-btn px-3 py-1 rounded-full border text-sm font-medium"
+    data-emotion="sad"
+  >
+    Sad
+  </button>
+  <button
+    class="emotion-toggle-btn px-3 py-1 rounded-full border text-sm font-medium"
+    data-emotion="angry"
+  >
+    Angry
+  </button>
+</div>
+
+<canvas id="emotionChart"></canvas>
+
       <canvas id="emotionChart" class="w-full h-64"></canvas>
       <p class="mt-2 text-[11px] text-black/50">
         Each line shows whether an emotion was present on that day (1 = present, 0 = not present).
