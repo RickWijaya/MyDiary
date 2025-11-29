@@ -1,11 +1,14 @@
 // assets/js/dashboard.js
 
 // ===== CONFIG =====
-const FACE_API_URL = "https://colab-example-url/face";   // placeholder
+const ROBOFLOW_API_KEY = "LH7a1zJFy9rcoIoMhh0C";
+const ROBOFLOW_MODEL = "facial-emotion-recognition-e8skk";
+const ROBOFLOW_VERSION = "2";
+
 const TEXT_API_URL = "https://colab-example-url/text";   // placeholder
 const AUDIO_API_URL = "https://colab-example-url/audio"; // placeholder
 
-const CONFIDENCE_THRESHOLD = 0.7; // 70%
+const CONFIDENCE_THRESHOLD = 0.6; // 60%
 
 let webcamStream = null;
 let capturedImageDataUrl = null;
@@ -571,16 +574,19 @@ function stopAudioWave() {
 function normalizeCandidates(apiResponse) {
   if (!apiResponse) return [];
 
+  // Roboflow Response (Object with 'predictions' array)
   if (Array.isArray(apiResponse.predictions)) {
     return apiResponse.predictions.map((p) => ({
-      label: p.label,
+      // since roboflow uses class and we use label, we can map here
+      label: p.class || p.label, 
       confidence: Number(p.confidence)
     }));
   }
 
+  // Fallback, just a generic list
   if (Array.isArray(apiResponse)) {
     return apiResponse.map((p) => ({
-      label: p.label || p[0],
+      label: p.label || p.class || p[0],
       confidence: Number(p.confidence || p[1])
     }));
   }
@@ -613,53 +619,72 @@ const EMOTION_BUCKET_MAP = {
 function reduceToThreeEmotions(predictions) {
   const scores = { happy: 0, sad: 0, angry: 0 };
 
+  // Sum up confidence for each emotion bucket
   predictions.forEach((p) => {
     const raw = (p.label || "").toLowerCase();
     const bucket = EMOTION_BUCKET_MAP[raw];
     if (!bucket) return;
-    scores[bucket] += Number(p.confidence) || 0;
+    
+    // Use Math.max to keep the highest confidence found, instead of adding them up
+    // (This prevents values > 1 if multiple faces are detected)
+    scores[bucket] = Math.max(scores[bucket], Number(p.confidence) || 0);
   });
 
-  const total = scores.happy + scores.sad + scores.angry;
-  if (total > 0) {
-    scores.happy /= total;
-    scores.sad /= total;
-    scores.angry /= total;
-  }
+  // REMOVED the "Divide by Total" block here.
+  // This allows the raw score (for exampple 0.75) to stay as is.
 
+  // Format the result
   const result = [
     { label: "happy", confidence: scores.happy },
     { label: "sad", confidence: scores.sad },
     { label: "angry", confidence: scores.angry }
   ];
 
+  // Sort highest to lowest
   return result.sort((a, b) => b.confidence - a.confidence);
 }
 
 async function sendFaceToAPI(base64Image) {
-  const body = { source: "face", image_base64: base64Image };
+  const pureBase64 = base64Image.split(',')[1];
 
-  const res = await fetch(FACE_API_URL, {
+  const url = `https://detect.roboflow.com/${ROBOFLOW_MODEL}/${ROBOFLOW_VERSION}?api_key=${ROBOFLOW_API_KEY}`;
+
+  // 3. Send to Roboflow
+  const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
+    body: pureBase64,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    }
   });
 
-  if (!res.ok) throw new Error("Face API error");
+  if (!res.ok) throw new Error("Roboflow Face API error");
+  
+  // Roboflow returns specific JSON: { predictions: [ { class: "happy", confidence: 0.9 }, ... ] }
   return res.json();
 }
 
+// async function sendTextToAPI(text) {
+//   const body = { source: "text", text };
+
+//   const res = await fetch(TEXT_API_URL, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify(body)
+//   });
+
+//   if (!res.ok) throw new Error("Text API error");
+//   return res.json();
+// }
+
+// dummy to make the face work
 async function sendTextToAPI(text) {
-  const body = { source: "text", text };
-
-  const res = await fetch(TEXT_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-
-  if (!res.ok) throw new Error("Text API error");
-  return res.json();
+  console.log("Mocking Text API");
+  return {
+    predictions: [
+      { label: "neutral", confidence: 0 } 
+    ]
+  };
 }
 
 function blobToDataUrl(blob) {
@@ -671,25 +696,35 @@ function blobToDataUrl(blob) {
   });
 }
 
+// dummy to make face work
 async function sendAudioToAPI(audioBlob) {
-  if (!audioBlob) return null;
-
-  const audioBase64 = await blobToDataUrl(audioBlob);
-
-  const body = {
-    source: "audio",
-    audio_base64: audioBase64
+  console.log("Mocking Audio API");
+  // Return dummy transcript and neutral emotion
+  return {
+    transcript: "This is a simulated transcript.",
+    predictions: [{ label: "neutral", confidence: 0 }]
   };
-
-  const res = await fetch(AUDIO_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-
-  if (!res.ok) throw new Error("Audio API error");
-  return res.json(); // expect { transcript, predictions: [...] }
 }
+
+// async function sendAudioToAPI(audioBlob) {
+//   if (!audioBlob) return null;
+
+//   const audioBase64 = await blobToDataUrl(audioBlob);
+
+//   const body = {
+//     source: "audio",
+//     audio_base64: audioBase64
+//   };
+
+//   const res = await fetch(AUDIO_API_URL, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify(body)
+//   });
+
+//   if (!res.ok) throw new Error("Audio API error");
+//   return res.json(); // expect { transcript, predictions: [...] }
+// }
 
 // ===== CHECK-IN SUBMISSION =====
 function setupCheckinButton() {
