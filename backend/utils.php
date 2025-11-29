@@ -2,13 +2,14 @@
 // backend/utils.php
 session_start();
 
-// Ensure all PHP date/time uses WIB (Asia/Jakarta)
+// Ensure WIB timezone
 date_default_timezone_set('Asia/Jakarta');
 
 define('DATA_FILE', __DIR__ . '/../data/data.json');
 
+
 /**
- * Safely read JSON data file into associative array.
+ * Safely read JSON data file into array.
  */
 function read_data()
 {
@@ -31,15 +32,14 @@ function read_data()
     return $data;
 }
 
+
 /**
- * Safely write array back to JSON data file with locking.
+ * Write JSON with file locking.
  */
 function write_data($data)
 {
     $fp = fopen(DATA_FILE, 'c+');
-    if (!$fp) {
-        return false;
-    }
+    if (!$fp) return false;
 
     if (!flock($fp, LOCK_EX)) {
         fclose($fp);
@@ -56,29 +56,29 @@ function write_data($data)
     return true;
 }
 
+
 /**
- * Find user index by email (case-insensitive). Returns -1 if not found.
+ * Find user index by email.
  */
 function get_user_index($data, $email)
 {
-    foreach ($data['users'] as $index => $user) {
+    foreach ($data['users'] as $i => $user) {
         if (isset($user['email']) &&
             strtolower($user['email']) === strtolower($email)) {
-            return $index;
+            return $i;
         }
     }
     return -1;
 }
 
+
 /**
- * Build a date => entry map and sort by date ascending.
+ * Build date → entry map.
  */
 function build_entries_by_date($entries)
 {
     $map = [];
-    if (!is_array($entries)) {
-        return $map;
-    }
+    if (!is_array($entries)) return $map;
 
     foreach ($entries as $entry) {
         if (!isset($entry['date'])) continue;
@@ -89,8 +89,9 @@ function build_entries_by_date($entries)
     return $map;
 }
 
+
 /**
- * Calculate current streak (consecutive days up to today with entries).
+ * Streak = consecutive days ending today.
  */
 function calculate_streak($entries)
 {
@@ -113,25 +114,26 @@ function calculate_streak($entries)
     return $streak;
 }
 
+
 /**
- * Simple ranking to decide "improvement" of emotion.
+ * Emotion ranking for improvement detection.
  */
 function emotion_rank($label)
 {
     $label = strtolower($label);
-    $negative = ['sad', 'angry', 'fear', 'disgust'];
-    $neutral  = ['neutral', 'calm', 'surprise'];
-    $positive = ['happy', 'excited', 'joy'];
 
-    if (in_array($label, $negative)) return 1;
-    if (in_array($label, $neutral))  return 2;
-    if (in_array($label, $positive)) return 3;
+    if ($label === 'sad')   return 1;
+    if ($label === 'angry') return 1;
+
+    if ($label === 'happy') return 3;
 
     return 2; // default neutral
 }
 
+
 /**
- * Generate recap / insight messages based on entries from last days.
+ * Generate insight/recap messages using new format:
+ * entry['final'] only.
  */
 function generate_recap($entries)
 {
@@ -142,26 +144,22 @@ function generate_recap($entries)
     $today = new DateTime('today');
     $todayStr = $today->format('Y-m-d');
 
-    // Build last 7 days emotion map (date => final emotion or null)
+    // Build last 7 days → emotion label
     $emotionLast7 = [];
     for ($i = 6; $i >= 0; $i--) {
         $d = (clone $today)->modify("-{$i} day")->format('Y-m-d');
-        if (isset($map[$d]['emotion']['final'])) {
-            $emotionLast7[$d] = $map[$d]['emotion']['final'];
-        } else {
-            $emotionLast7[$d] = null;
-        }
+        $emotionLast7[$d] = isset($map[$d]['final']) ? $map[$d]['final'] : null;
     }
 
-    // 1) "You have been X for N days in a row."
-    if (isset($emotionLast7[$todayStr]) && $emotionLast7[$todayStr] !== null) {
-        $currentEmotion = $emotionLast7[$todayStr];
+    // --- Streak of same emotion ---
+    if ($emotionLast7[$todayStr] !== null) {
+        $current = $emotionLast7[$todayStr];
         $runLen = 1;
-        $cursor = (clone $today)->modify('-1 day');
 
+        $cursor = (clone $today)->modify('-1 day');
         while (true) {
             $ds = $cursor->format('Y-m-d');
-            if (!isset($emotionLast7[$ds]) || $emotionLast7[$ds] !== $currentEmotion) {
+            if (!isset($emotionLast7[$ds]) || $emotionLast7[$ds] !== $current) {
                 break;
             }
             $runLen++;
@@ -169,44 +167,40 @@ function generate_recap($entries)
         }
 
         if ($runLen >= 2) {
-            $messages[] = "You have been {$currentEmotion} for {$runLen} days in a row.";
+            $messages[] = "You have been {$current} for {$runLen} days in a row.";
         }
     }
 
-    // 2) "Your happiness increased this week."
-    // Count 'happy' in last 7 vs previous 7 days.
-    $happyCountLast7 = 0;
-    $happyCountPrev7 = 0;
+    // --- Happiness improved (last 7 vs prev 7) ---
+    $happyLast7 = 0;
+    $happyPrev7 = 0;
 
-    // Last 7
+    // last 7 days
     for ($i = 0; $i < 7; $i++) {
         $d = (clone $today)->modify("-{$i} day")->format('Y-m-d');
-        if (isset($map[$d]['emotion']['final']) &&
-            strtolower($map[$d]['emotion']['final']) === 'happy') {
-            $happyCountLast7++;
-        }
-    }
-    // Previous 7
-    for ($i = 7; $i < 14; $i++) {
-        $d = (clone $today)->modify("-{$i} day")->format('Y-m-d');
-        if (isset($map[$d]['emotion']['final']) &&
-            strtolower($map[$d]['emotion']['final']) === 'happy') {
-            $happyCountPrev7++;
+        if (isset($map[$d]['final']) && strtolower($map[$d]['final']) === 'happy') {
+            $happyLast7++;
         }
     }
 
-    if ($happyCountLast7 > $happyCountPrev7 && $happyCountLast7 > 0) {
+    // prev 7 days
+    for ($i = 7; $i < 14; $i++) {
+        $d = (clone $today)->modify("-{$i} day")->format('Y-m-d');
+        if (isset($map[$d]['final']) && strtolower($map[$d]['final']) === 'happy') {
+            $happyPrev7++;
+        }
+    }
+
+    if ($happyLast7 > $happyPrev7 && $happyLast7 > 0) {
         $messages[] = "Your happiness increased this week.";
     }
 
-    // 3) "Yesterday your emotion was X, today it improved to Y."
+    // --- Yesterday vs Today change ---
     $yesterday = (new DateTime('yesterday'))->format('Y-m-d');
 
-    if (isset($map[$yesterday]['emotion']['final']) &&
-        isset($map[$todayStr]['emotion']['final'])) {
-
-        $yEmotion = $map[$yesterday]['emotion']['final'];
-        $tEmotion = $map[$todayStr]['emotion']['final'];
+    if (isset($map[$yesterday]['final']) && isset($map[$todayStr]['final'])) {
+        $yEmotion = $map[$yesterday]['final'];
+        $tEmotion = $map[$todayStr]['final'];
 
         if ($yEmotion !== $tEmotion) {
             $rankY = emotion_rank($yEmotion);
@@ -220,8 +214,5 @@ function generate_recap($entries)
         }
     }
 
-    // Remove duplicates just in case.
-    $messages = array_values(array_unique($messages));
-
-    return $messages;
+    return array_values(array_unique($messages));
 }

@@ -5,3 +5,7 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background-attachment: fixed;
 }
+
+#webcam {
+  transform: scaleX(1);
+}

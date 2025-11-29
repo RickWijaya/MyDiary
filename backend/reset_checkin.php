@@ -4,7 +4,7 @@ require_once 'utils.php';
 
 header('Content-Type: application/json');
 
-// must be logged in
+// Must be logged in
 if (!isset($_SESSION['email'])) {
     echo json_encode([
         'success' => false,
@@ -14,7 +14,7 @@ if (!isset($_SESSION['email'])) {
 }
 
 $email = $_SESSION['email'];
-$data = read_data();
+$data  = read_data();
 
 $index = get_user_index($data, $email);
 if ($index === -1) {
@@ -27,33 +27,45 @@ if ($index === -1) {
 
 $user = &$data['users'][$index];
 
-// today's date
-$today = (new DateTime('today'))->format('Y-m-d');
+// Today's date in WIB
+$today = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
+$todayStr = $today->format('Y-m-d');
 
-// remove today's entry if exists
+// Remove today's entry (if exists)
 if (isset($user['entries']) && is_array($user['entries'])) {
-    $newEntries = [];
+    $filtered = [];
+
     foreach ($user['entries'] as $entry) {
-        if ($entry['date'] !== $today) {
-            $newEntries[] = $entry;
+        // Skip today's entry
+        if (isset($entry['date']) && $entry['date'] === $todayStr) {
+            continue;
         }
+        $filtered[] = $entry;
     }
-    $user['entries'] = $newEntries;
+
+    $user['entries'] = $filtered;
 }
 
-// mark reset flag (optional)
+// Optional: store reset flag
 $user['resetCheckIn'] = true;
 
-// save file
-write_data($data);
+// Save file
+if (!write_data($data)) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Failed to save data'
+    ]);
+    exit;
+}
 
-// recalc streak and recap
+// Recalculate streak & recap using new format
 $streak = calculate_streak($user['entries']);
 $recap  = generate_recap($user['entries']);
 
 echo json_encode([
     'success' => true,
-    'message' => 'Today\'s check-in reset',
-    'streak' => $streak,
-    'recap' => $recap
+    'message' => "Today's check-in reset.",
+    'streak'  => $streak,
+    'recap'   => $recap
 ]);
+exit;

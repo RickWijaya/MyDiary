@@ -1,9 +1,10 @@
 <?php
 // backend/get_user_data.php
 require_once 'utils.php';
+
 header('Content-Type: application/json');
 
-// not logged in
+// Not logged in
 if (!isset($_SESSION['email'])) {
     http_response_code(401);
     echo json_encode([
@@ -26,9 +27,15 @@ if ($index === -1) {
 }
 
 $user = $data['users'][$index];
-$entries = isset($user['entries']) ? $user['entries'] : [];
 
-// your existing helper functions
+// Ensure entries is always an array
+$entries = [];
+if (isset($user['entries']) && is_array($user['entries'])) {
+    $entries = $user['entries'];
+}
+
+// Helpers should now work with new format:
+// each entry: ['date','diary','face','voice','final']
 $streak = calculate_streak($entries);
 $recap  = generate_recap($entries);
 
@@ -39,3 +46,4 @@ echo json_encode([
     'streak'  => $streak,
     'recap'   => $recap
 ]);
+exit;

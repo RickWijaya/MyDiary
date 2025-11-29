@@ -28,7 +28,7 @@ let audioContext = null;
 let analyserNode = null;
 let pendingAudioCandidates = [];
 let currentTranscript = ""; // auto diary text from voice
-let recognition = null; // Web Speech API instance
+let recognition = null;     // Web Speech API instance
 
 const EMOTION_RECOMMENDATIONS = {
   happy: "Keep up the great work! Share your joy with others.",
@@ -46,6 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadUserData();
 });
 
+// ===== CLOCK (WIB) =====
 function initClock() {
   const clockEl = document.getElementById("clock");
   if (!clockEl) return;
@@ -53,7 +54,6 @@ function initClock() {
   function updateClock() {
     const now = new Date();
 
-    // Force Asia/Jakarta (WIB) regardless of user OS timezone
     const dateFormatter = new Intl.DateTimeFormat("en-CA", {
       year: "numeric",
       month: "2-digit",
@@ -127,6 +127,8 @@ function updateStreakAndRecap(streak, recapArray) {
     recapList.appendChild(li);
   }
 }
+
+// (kept but no longer used – safe)
 function applyHighlightStyles() {
   if (!emotionChart) return;
 
@@ -143,90 +145,124 @@ function applyHighlightStyles() {
       : ds.pointBackgroundColor.replace("1)", "0.3)");
   });
 }
-// ===== CHART =====
-// ===== CHART (SIMPLE BAR, ONE BAR PER DAY BY FINAL EMOTION) =====
+
+// ===== CHART (3 lines with gradient fill, using face+voice) =====
 function updateChart(entries) {
-  const ctx = document.getElementById("emotionChart").getContext("2d");
+  const canvas = document.getElementById("emotionChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
 
-  // Map date -> candidates { happy: x, sad: y, angry: z }
-  // And date -> diary/transcript
-  const dateMap = {};   // { "2025-11-12": { happy: 76.23, sad: 12.01, angry: 11.76 }, ... }
-  const diaryMap = {};  // { "2025-11-12": "Had a productive day..." }
+  if (emotionChart) emotionChart.destroy();
 
-  entries.forEach((e) => {
-    if (!e.date || !e.emotion || !Array.isArray(e.emotion.candidates)) return;
-
-    const row = { happy: 0, sad: 0, angry: 0 };
-    e.emotion.candidates.forEach((c) => {
-      const label = (c.label || "").toLowerCase();
-      if (label === "happy" || label === "sad" || label === "angry") {
-        const v = Number(c.confidence) || 0;
-        row[label] = Number((v * 100).toFixed(2)); // 0–100 with 2 decimals
-      }
-    });
-
-    dateMap[e.date] = row;
-    diaryMap[e.date] = e.diary || ""; // save transcript/diary for tooltip
-  });
-
-  const dates = Object.keys(dateMap).sort();
-  const EMOTIONS = ["happy", "sad", "angry"];
-
-  const baseColors = {
+  const COLORS = {
     happy: "rgba(34, 197, 94, 1)",   // green
-    sad: "rgba(59, 130, 246, 1)",  // blue
+    sad:   "rgba(59, 130, 246, 1)",  // blue
     angry: "rgba(239, 68, 68, 1)"    // red
   };
 
-  const datasets = EMOTIONS.map((emotion) => ({
-    label: emotion,
-    data: dates.map((d) => (dateMap[d] ? dateMap[d][emotion] : 0)),
-    fill: false,
-    borderColor: baseColors[emotion],
-    borderWidth: 2,
-    tension: 0.25,
-    pointRadius: 3,
-    pointHoverRadius: 4,
-    pointBackgroundColor: baseColors[emotion]
-  }));
+  const labels = [];
+  const happyData = [];
+  const sadData = [];
+  const angryData = [];
+  const diaryMap = {};
 
-  if (emotionChart) emotionChart.destroy();
+  const sorted = [...entries].sort(
+    (a, b) => new Date(a.date) - new Date(b.date)
+  );
+
+  sorted.forEach((e) => {
+    if (!e.date) return;
+
+    labels.push(e.date);
+    diaryMap[e.date] = e.diary || "";
+
+    const face = e.face || {};
+    const voice = e.voice || {};
+
+    function avg2(a, b) {
+      const nums = [];
+      if (typeof a === "number") nums.push(a);
+      if (typeof b === "number") nums.push(b);
+      if (!nums.length) return 0;
+      if (nums.length === 1) return nums[0];
+      return (nums[0] + nums[1]) / 2;
+    }
+
+    const h = Number((avg2(face.happy, voice.happy) * 100).toFixed(2));
+    const s = Number((avg2(face.sad, voice.sad) * 100).toFixed(2));
+    const aVal = Number((avg2(face.angry, voice.angry) * 100).toFixed(2));
+
+    happyData.push(h);
+    sadData.push(s);
+    angryData.push(aVal);
+  });
+
+  // create per-line gradients
+  function makeGradient(colorRgb) {
+    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    grad.addColorStop(0, colorRgb.replace("1)", "0.35)")); // strong top
+    grad.addColorStop(1, colorRgb.replace("1)", "0)"));    // fade bottom
+    return grad;
+  }
+
+  const happyGradient = makeGradient("rgba(34, 197, 94, 1)");
+  const sadGradient   = makeGradient("rgba(59, 130, 246, 1)");
+  const angryGradient = makeGradient("rgba(239, 68, 68, 1)");
 
   emotionChart = new Chart(ctx, {
     type: "line",
     data: {
-      labels: dates,
-      datasets
+      labels,
+      datasets: [
+        {
+          label: "Happy",
+          data: happyData,
+          borderColor: COLORS.happy,
+          backgroundColor: happyGradient,
+          tension: 0.35,
+          borderWidth: 3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          fill: true
+        },
+        {
+          label: "Sad",
+          data: sadData,
+          borderColor: COLORS.sad,
+          backgroundColor: sadGradient,
+          tension: 0.35,
+          borderWidth: 3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          fill: true
+        },
+        {
+          label: "Angry",
+          data: angryData,
+          borderColor: COLORS.angry,
+          backgroundColor: angryGradient,
+          tension: 0.35,
+          borderWidth: 3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          fill: true
+        }
+      ]
     },
     options: {
       responsive: true,
       plugins: {
         legend: {
           display: true,
-          labels: { usePointStyle: true },
-          onClick: (e, legendItem, legend) => {
-            legendClickFlag = true;
-
-            const clickedEmotion = legendItem.text; // "happy" / "sad" / "angry"
-            if (highlightedEmotion === clickedEmotion) {
-              highlightedEmotion = null;
-            } else {
-              highlightedEmotion = clickedEmotion;
-            }
-
-            applyHighlightStyles();
-            emotionChart.update();
-          }
+          position: "top"
         },
         tooltip: {
           callbacks: {
-            label: function (context) {
-              const emo = context.dataset.label;
-              const val = context.parsed.y;
-              const date = context.label;
-              const diary = diaryMap[date] || "(no diary recorded)";
-
-              // multiple lines in tooltip
+            label: (ctx) => {
+              const emo = ctx.dataset.label;
+              const val = ctx.parsed.y ?? 0;
+              const date = ctx.label;
+              const diary = diaryMap[date] || "(no diary)";
               return [
                 `${emo}: ${val.toFixed(2)}%`,
                 `Diary: ${diary}`
@@ -240,7 +276,7 @@ function updateChart(entries) {
           beginAtZero: true,
           suggestedMax: 100,
           ticks: {
-            callback: (value) => `${value}%`
+            callback: (v) => `${v}%`
           }
         },
         x: {
@@ -249,10 +285,7 @@ function updateChart(entries) {
       }
     }
   });
-
-  applyHighlightStyles();
 }
-
 
 // ===== CHECK-IN PANEL =====
 function updateCheckinPanel(entries) {
@@ -270,11 +303,12 @@ function updateCheckinPanel(entries) {
   if (todayEntry) {
     alreadyEl.classList.remove("hidden");
     document.getElementById("todayFinalEmotion").textContent =
-      todayEntry.emotion && todayEntry.emotion.final ? todayEntry.emotion.final : "-";
+      todayEntry.final || "-";
     document.getElementById("todayDiary").textContent = todayEntry.diary || "-";
 
-    const finalEmo = todayEntry.emotion && todayEntry.emotion.final ? todayEntry.emotion.final : "happy";
-    document.getElementById("todayRecommendation").textContent = EMOTION_RECOMMENDATIONS[finalEmo] || EMOTION_RECOMMENDATIONS.happy;
+    const finalEmo = todayEntry.final || "happy";
+    document.getElementById("todayRecommendation").textContent =
+      EMOTION_RECOMMENDATIONS[finalEmo] || EMOTION_RECOMMENDATIONS.happy;
 
     ctaText.textContent = "You have already checked in today.";
     openBtn.disabled = true;
@@ -370,15 +404,16 @@ function captureFrame() {
   preview.classList.remove("hidden");
 }
 
-// ===== AUDIO RECORDING + WAVEFORM =====
+// ===== AUDIO RECORDING + WAVEFORM + SPEECH-TO-TEXT =====
 function setupAudioRecording() {
-  // Initialize Web Speech API if available
-  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  // Web Speech API
+  if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = 'en-US'; // Default to English
+    recognition.lang = "en-US";
 
     recognition.onresult = (event) => {
       let final = "";
@@ -392,16 +427,9 @@ function setupAudioRecording() {
         }
       }
 
-      // Update UI and variable
       const display = document.getElementById("transcriptDisplay");
-      const text = final + interim;
-      if (text.trim()) {
-        // If we have previous content and this is a new segment, we might want to handle it,
-        // but for this simple implementation, we'll just show what the API returns for the current session.
-        // To support multiple start/stops appending, we'd need more logic.
-        // For now, let's assume one recording session per check-in or just overwrite.
-        // Actually, let's append to the global currentTranscript if it's a new session? 
-        // Simpler: just update currentTranscript with what we hear now.
+      const text = (final + interim).trim();
+      if (text) {
         currentTranscript = text;
         display.textContent = currentTranscript;
       }
@@ -455,7 +483,6 @@ async function startRecording() {
       audioStream = null;
     }
 
-    // playback
     const audioUrl = URL.createObjectURL(recordedAudioBlob);
     playback.src = audioUrl;
     playback.classList.remove("hidden");
@@ -465,12 +492,10 @@ async function startRecording() {
 
     stopAudioWave();
 
-    // send to audio API: get transcript + audio-based emotion
     try {
       const audioResult = await sendAudioToAPI(recordedAudioBlob);
 
-      // transcript
-      // Only use API transcript if we didn't get one from Web Speech API
+      // Only use API transcript if Web Speech didn't fill it
       if (audioResult && audioResult.transcript && !currentTranscript) {
         currentTranscript = audioResult.transcript;
         const transcriptDisplay = document.getElementById("transcriptDisplay");
@@ -479,7 +504,6 @@ async function startRecording() {
         currentTranscript = "";
       }
 
-      // emotion candidates from audio
       const rawCandidates = normalizeCandidates(audioResult);
       const reduced = reduceToThreeEmotions(rawCandidates);
       pendingAudioCandidates = reduced;
@@ -570,20 +594,19 @@ function stopAudioWave() {
   }
 }
 
-// ===== GRADIO / COLAB API CALLS =====
+// ===== GRADIO / ROBOFLOW / COLAB API CALLS =====
 function normalizeCandidates(apiResponse) {
   if (!apiResponse) return [];
 
-  // Roboflow Response (Object with 'predictions' array)
+  // Roboflow-like: { predictions: [ { class: "...", confidence: ... }, ... ] }
   if (Array.isArray(apiResponse.predictions)) {
     return apiResponse.predictions.map((p) => ({
-      // since roboflow uses class and we use label, we can map here
-      label: p.class || p.label, 
+      label: p.class || p.label,
       confidence: Number(p.confidence)
     }));
   }
 
-  // Fallback, just a generic list
+  // Generic list
   if (Array.isArray(apiResponse)) {
     return apiResponse.map((p) => ({
       label: p.label || p.class || p[0],
@@ -619,37 +642,27 @@ const EMOTION_BUCKET_MAP = {
 function reduceToThreeEmotions(predictions) {
   const scores = { happy: 0, sad: 0, angry: 0 };
 
-  // Sum up confidence for each emotion bucket
   predictions.forEach((p) => {
     const raw = (p.label || "").toLowerCase();
     const bucket = EMOTION_BUCKET_MAP[raw];
     if (!bucket) return;
-    
-    // Use Math.max to keep the highest confidence found, instead of adding them up
-    // (This prevents values > 1 if multiple faces are detected)
     scores[bucket] = Math.max(scores[bucket], Number(p.confidence) || 0);
   });
 
-  // REMOVED the "Divide by Total" block here.
-  // This allows the raw score (for exampple 0.75) to stay as is.
-
-  // Format the result
   const result = [
     { label: "happy", confidence: scores.happy },
     { label: "sad", confidence: scores.sad },
     { label: "angry", confidence: scores.angry }
   ];
 
-  // Sort highest to lowest
   return result.sort((a, b) => b.confidence - a.confidence);
 }
 
 async function sendFaceToAPI(base64Image) {
-  const pureBase64 = base64Image.split(',')[1];
+  const pureBase64 = base64Image.split(",")[1];
 
   const url = `https://detect.roboflow.com/${ROBOFLOW_MODEL}/${ROBOFLOW_VERSION}?api_key=${ROBOFLOW_API_KEY}`;
 
-  // 3. Send to Roboflow
   const res = await fetch(url, {
     method: "POST",
     body: pureBase64,
@@ -659,31 +672,14 @@ async function sendFaceToAPI(base64Image) {
   });
 
   if (!res.ok) throw new Error("Roboflow Face API error");
-  
-  // Roboflow returns specific JSON: { predictions: [ { class: "happy", confidence: 0.9 }, ... ] }
   return res.json();
 }
 
-// async function sendTextToAPI(text) {
-//   const body = { source: "text", text };
-
-//   const res = await fetch(TEXT_API_URL, {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify(body)
-//   });
-
-//   if (!res.ok) throw new Error("Text API error");
-//   return res.json();
-// }
-
-// dummy to make the face work
+// Dummy Text API (so flow works without Colab)
 async function sendTextToAPI(text) {
   console.log("Mocking Text API");
   return {
-    predictions: [
-      { label: "neutral", confidence: 0 } 
-    ]
+    predictions: [{ label: "neutral", confidence: 0 }]
   };
 }
 
@@ -696,35 +692,14 @@ function blobToDataUrl(blob) {
   });
 }
 
-// dummy to make face work
+// Dummy Audio API
 async function sendAudioToAPI(audioBlob) {
   console.log("Mocking Audio API");
-  // Return dummy transcript and neutral emotion
   return {
     transcript: "This is a simulated transcript.",
     predictions: [{ label: "neutral", confidence: 0 }]
   };
 }
-
-// async function sendAudioToAPI(audioBlob) {
-//   if (!audioBlob) return null;
-
-//   const audioBase64 = await blobToDataUrl(audioBlob);
-
-//   const body = {
-//     source: "audio",
-//     audio_base64: audioBase64
-//   };
-
-//   const res = await fetch(AUDIO_API_URL, {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify(body)
-//   });
-
-//   if (!res.ok) throw new Error("Audio API error");
-//   return res.json(); // expect { transcript, predictions: [...] }
-// }
 
 // ===== CHECK-IN SUBMISSION =====
 function setupCheckinButton() {
@@ -778,7 +753,7 @@ async function handleCheckinSubmit() {
 
     pendingCheckinContext = {
       date: getTodayString(),
-      diary: currentTranscript,      // voice → text
+      diary: currentTranscript, // voice → text
       faceCandidates,
       textCandidates,
       audioCandidates,
@@ -831,27 +806,34 @@ function closeEmotionModal() {
   document.getElementById("emotionModal").classList.add("hidden");
 }
 
-// ===== FINAL SAVE TO BACKEND =====
+// ===== FINAL SAVE TO BACKEND (NEW JSON SHAPE) =====
+function candidatesToDistribution(candidates) {
+  const dist = { happy: 0, sad: 0, angry: 0 };
+  if (!Array.isArray(candidates)) return dist;
+
+  candidates.forEach((c) => {
+    const lbl = (c.label || "").toLowerCase();
+    if (lbl === "happy" || lbl === "sad" || lbl === "angry") {
+      dist[lbl] = c.confidence || 0;
+    }
+  });
+
+  return dist;
+}
+
 async function finalizeAndSaveEntry(finalEmotionLabel) {
   const ctx = pendingCheckinContext;
   if (!ctx) throw new Error("Missing pending check-in context");
 
-  const faceTop = ctx.faceCandidates[0] || { label: "unknown", confidence: 0 };
-  const textTop = ctx.textCandidates[0] || { label: "unknown", confidence: 0 };
-  const audioTop = ctx.audioCandidates[0] || { label: "unknown", confidence: 0 };
-
-  const emotionObject = {
-    face: faceTop,
-    text: textTop,   // emotion from transcript
-    voice: audioTop, // emotion from raw audio
-    final: finalEmotionLabel,
-    candidates: ctx.mainCandidates
-  };
+  const faceDist = candidatesToDistribution(ctx.faceCandidates);
+  const voiceDist = candidatesToDistribution(ctx.audioCandidates);
 
   const payload = {
     date: ctx.date,
-    diary: ctx.diary,   // transcript used as diary
-    emotion: emotionObject
+    diary: ctx.diary,     // transcript used as diary
+    face: faceDist,       // { happy, sad, angry }
+    voice: voiceDist,     // { happy, sad, angry }
+    final: finalEmotionLabel // "happy" | "sad" | "angry"
   };
 
   const res = await fetch("backend/save_entry.php", {
@@ -865,7 +847,6 @@ async function finalizeAndSaveEntry(finalEmotionLabel) {
     throw new Error(data.message || "Failed to save entry");
   }
 
-  // Close modal + reset state
   document.getElementById("checkinModal").classList.add("hidden");
   stopWebcam();
   stopAudioWave();

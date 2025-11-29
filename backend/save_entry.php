@@ -25,17 +25,26 @@ if (!is_array($payload)) {
     exit;
 }
 
-$date   = isset($payload['date']) ? $payload['date'] : null;
-$diary  = isset($payload['diary']) ? $payload['diary'] : null;
-$emotion = isset($payload['emotion']) ? $payload['emotion'] : null;
+$date  = isset($payload['date']) ? $payload['date'] : null;
+$diary = isset($payload['diary']) ? $payload['diary'] : null;
+$face  = isset($payload['face']) ? $payload['face'] : null;
+$voice = isset($payload['voice']) ? $payload['voice'] : null;
+$final = isset($payload['final']) ? $payload['final'] : null;
 
-if (!$date || !$diary || !$emotion) {
+// Basic validation for new structure
+if (
+    !$date ||
+    !$diary ||
+    !is_array($face) ||
+    !is_array($voice) ||
+    !$final
+) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Missing fields']);
+    echo json_encode(['success' => false, 'message' => 'Missing or invalid fields']);
     exit;
 }
 
-$data = read_data();
+$data  = read_data();
 $email = $_SESSION['email'];
 $index = get_user_index($data, $email);
 
@@ -50,15 +59,18 @@ if (!isset($data['users'][$index]['entries']) || !is_array($data['users'][$index
     $data['users'][$index]['entries'] = [];
 }
 
-// Replace existing entry for this date, or add new
 $entries = $data['users'][$index]['entries'];
-$found = false;
+$found   = false;
+
+// Replace existing entry for this date, or add new
 foreach ($entries as $i => $entry) {
     if (isset($entry['date']) && $entry['date'] === $date) {
         $entries[$i] = [
-            'date'    => $date,
-            'diary'   => $diary,
-            'emotion' => $emotion
+            'date'  => $date,
+            'diary' => $diary,
+            'face'  => $face,
+            'voice' => $voice,
+            'final' => $final,
         ];
         $found = true;
         break;
@@ -67,9 +79,11 @@ foreach ($entries as $i => $entry) {
 
 if (!$found) {
     $entries[] = [
-        'date'    => $date,
-        'diary'   => $diary,
-        'emotion' => $emotion
+        'date'  => $date,
+        'diary' => $diary,
+        'face'  => $face,
+        'voice' => $voice,
+        'final' => $final,
     ];
 }
 
@@ -89,6 +103,6 @@ $recap  = generate_recap($entries);
 echo json_encode([
     'success' => true,
     'streak'  => $streak,
-    'recap'   => $recap
+    'recap'   => $recap,
 ]);
 exit;
