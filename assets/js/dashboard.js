@@ -31,9 +31,21 @@ let currentTranscript = ""; // auto diary text from voice
 let recognition = null;     // Web Speech API instance
 
 const EMOTION_RECOMMENDATIONS = {
-  happy: "Keep up the great work! Share your joy with others.",
-  sad: "It's okay to feel sad. Take a short walk or listen to some calming music.",
-  angry: "Take deep breaths. Try to step away from the situation for a moment."
+  happy: {
+    text: "Keep up the great work! Share your joy with others.",
+    youtube: "https://www.youtube.com/embed/WtI9f7A4Iz4", // Happy - Pharrell Williams
+    spotify: "https://open.spotify.com/embed/playlist/37i9dQZF1DXdPec7aLTmlC" // Happy Hits
+  },
+  sad: {
+    text: "It's okay to feel sad. Take a short walk or listen to some calming music.",
+    youtube: "https://www.youtube.com/embed/ur48jVNNlKk", // Lofi Girl
+    spotify: "https://open.spotify.com/embed/playlist/37i9dQZF1DWZqd5JICZI0u" // Peaceful Piano
+  },
+  angry: {
+    text: "Take deep breaths. Try to step away from the situation for a moment.",
+    youtube: "https://www.youtube.com/embed/r19_Dq3TOyM", // 5-min Meditation
+    spotify: "https://open.spotify.com/embed/playlist/37i9dQZF1DWXe9gFZP0gtP" // Stress Relief
+  }
 };
 
 // ===== INIT =====
@@ -43,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCheckinButton();
   setupAudioRecording();
   initClock();
-  setupEmotionFilterButtons(); 
+  setupEmotionFilterButtons();
   loadUserData();
 });
 
@@ -120,36 +132,44 @@ function getTodayString() {
 // ===== LOAD USER DATA =====
 async function loadUserData() {
   try {
-    const res = await fetch("backend/get_user_data.php");
-    if (res.status === 401) {
-      window.location.href = "login.html";
-      return;
-    }
-    const data = await res.json();
-    if (!data.success) throw new Error(data.message || "Failed to load user data");
+    // FETCH LOCAL JSON (Read-only mode)
+    console.log("Fetching data from data/data.json...");
+    const res = await fetch("data/data.json");
+    if (!res.ok) throw new Error("Could not load data.json");
+
+    const db = await res.json();
+    // Default to demo user for this static server view
+    const user = db.users.find(u => u.email === "demo@example.com");
+
+    if (!user) throw new Error("Demo user not found in data.json");
+
+    const data = {
+      email: user.email,
+      streak: 0, // We will compute this
+      recap: [], // Static or computed
+      entries: user.entries || []
+    };
 
     document.getElementById("userEmail").textContent = data.email;
-    userEntries = Array.isArray(data.entries) ? data.entries : [];
+    userEntries = data.entries;
 
     const todayStr = getTodayString();
     const hasTodayEntry = userEntries.some((e) => e.date === todayStr);
 
-    // 🔹 If user already checked in today → trust backend streak (includes today)
-    // 🔹 If NOT checked in today → show streak up to yesterday instead of 0
-    let displayStreak;
-    if (hasTodayEntry) {
-      displayStreak = typeof data.streak === "number" ? data.streak : 0;
-    } else {
-      displayStreak = computeStreakUntilYesterday(userEntries);
-    }
+    // Compute streak locally since we don't have backend logic
+    const displayStreak = computeStreakUntilYesterday(userEntries) + (hasTodayEntry ? 1 : 0);
 
-    updateStreakAndRecap(displayStreak, data.recap, hasTodayEntry);
+    updateStreakAndRecap(displayStreak, ["Welcome back!", "Keep tracking your emotions."], hasTodayEntry);
     updateChart(userEntries);
     updateCheckinPanel(userEntries);
+
   } catch (err) {
     console.error(err);
     const statusEl = document.getElementById("checkinStatus");
-    if (statusEl) statusEl.textContent = "Failed to load dashboard data.";
+    if (statusEl) statusEl.textContent = "Failed to load data from data.json";
+
+    // Fallback to empty if failed
+    document.getElementById("userEmail").textContent = "Guest";
   }
 }
 
@@ -240,9 +260,9 @@ function applyHighlightStyles() {
 function updateChart(entries) {
   const canvas = document.getElementById("emotionChart");
   if (!canvas) return;
-    // ===== NEW: If only 1 entry → show “insufficient data” =====
-  const chartContainer = document.getElementById("chartContainer"); 
-  const noDataBox = document.getElementById("noDataBox"); 
+  // ===== NEW: If only 1 entry → show “insufficient data” =====
+  const chartContainer = document.getElementById("chartContainer");
+  const noDataBox = document.getElementById("noDataBox");
 
   if (entries.length <= 1) {
     if (chartContainer) chartContainer.classList.add("hidden");
@@ -269,7 +289,7 @@ function updateChart(entries) {
 
   const COLORS = {
     happy: "rgba(34, 197, 94, 1)",   // green
-    sad:   "rgba(59, 130, 246, 1)",  // blue
+    sad: "rgba(59, 130, 246, 1)",  // blue
     angry: "rgba(239, 68, 68, 1)"    // red
   };
 
@@ -318,12 +338,12 @@ function updateChart(entries) {
     return grad;
   }
 
-  const happyGradient     = makeGradient(COLORS.happy, 0.35);
-  const happyDimGradient  = makeGradient(COLORS.happy, 0.10);
-  const sadGradient       = makeGradient(COLORS.sad,   0.35);
-  const sadDimGradient    = makeGradient(COLORS.sad,   0.10);
-  const angryGradient     = makeGradient(COLORS.angry, 0.35);
-  const angryDimGradient  = makeGradient(COLORS.angry, 0.10);
+  const happyGradient = makeGradient(COLORS.happy, 0.35);
+  const happyDimGradient = makeGradient(COLORS.happy, 0.10);
+  const sadGradient = makeGradient(COLORS.sad, 0.35);
+  const sadDimGradient = makeGradient(COLORS.sad, 0.10);
+  const angryGradient = makeGradient(COLORS.angry, 0.35);
+  const angryDimGradient = makeGradient(COLORS.angry, 0.10);
 
   emotionChart = new Chart(ctx, {
     type: "line",
@@ -465,14 +485,32 @@ function updateCheckinPanel(entries) {
     document.getElementById("todayDiary").textContent = todayEntry.diary || "-";
 
     const finalEmo = todayEntry.final || "happy";
-    document.getElementById("todayRecommendation").textContent =
-      EMOTION_RECOMMENDATIONS[finalEmo] || EMOTION_RECOMMENDATIONS.happy;
+    const recData = EMOTION_RECOMMENDATIONS[finalEmo] || EMOTION_RECOMMENDATIONS.happy;
+
+    // Text recommendation
+    document.getElementById("todayRecommendation").textContent = recData.text;
+
+    // Multimedia
+    const ytFrame = document.getElementById("recYoutube");
+    const spFrame = document.getElementById("recSpotify");
+    const mediaContainer = document.getElementById("recMediaContainer");
+
+    if (mediaContainer) {
+      mediaContainer.classList.remove("hidden");
+      if (ytFrame) ytFrame.src = recData.youtube;
+      if (spFrame) spFrame.src = recData.spotify;
+    }
 
     ctaText.textContent = "You have already checked in today.";
     openBtn.disabled = true;
     openBtn.classList.add("opacity-60", "cursor-not-allowed");
   } else {
     alreadyEl.classList.add("hidden");
+
+    // Hide media container if not checked in
+    const mediaContainer = document.getElementById("recMediaContainer");
+    if (mediaContainer) mediaContainer.classList.add("hidden");
+
     ctaText.textContent = "You haven't checked in yet today.";
     openBtn.disabled = false;
     openBtn.classList.remove("opacity-60", "cursor-not-allowed");
@@ -516,8 +554,8 @@ function resetCheckinModalState() {
   recordStatus.textContent = "Tap the mic to record your voice diary.";
 
   const transcriptDisplay = document.getElementById("transcriptDisplay");
-transcriptDisplay.value = "";
-currentTranscript = "";
+  transcriptDisplay.value = "";
+  currentTranscript = "";
 
 }
 
@@ -588,11 +626,11 @@ function setupAudioRecording() {
       }
 
       const display = document.getElementById("transcriptDisplay");
-const text = (final + interim).trim();
-if (text) {
-  currentTranscript = text;
-  display.value = currentTranscript; // textarea
-}
+      const text = (final + interim).trim();
+      if (text) {
+        currentTranscript = text;
+        display.value = currentTranscript; // textarea
+      }
 
     };
 
@@ -658,12 +696,12 @@ async function startRecording() {
 
       // Only use API transcript if Web Speech didn't fill it
       if (audioResult && audioResult.transcript && !currentTranscript) {
-  currentTranscript = audioResult.transcript;
-  const transcriptDisplay = document.getElementById("transcriptDisplay");
-  transcriptDisplay.value = currentTranscript; // textarea
-} else if (!currentTranscript) {
-  currentTranscript = "";
-}
+        currentTranscript = audioResult.transcript;
+        const transcriptDisplay = document.getElementById("transcriptDisplay");
+        transcriptDisplay.value = currentTranscript; // textarea
+      } else if (!currentTranscript) {
+        currentTranscript = "";
+      }
 
 
       const rawCandidates = normalizeCandidates(audioResult);
@@ -830,7 +868,7 @@ function reduceToThreeEmotions(candidates) {
 
   const result = [
     { label: "happy", confidence: sums.happy / total },
-    { label: "sad",   confidence: sums.sad   / total },
+    { label: "sad", confidence: sums.sad / total },
     { label: "angry", confidence: sums.angry / total }
   ];
 
@@ -921,7 +959,7 @@ function mapFaceWorkflowToThree(raw) {
 
   // Merge surprised → happy & sad
   happyP += surprisedP * 0.7;
-  sadP   += surprisedP * 0.3;
+  sadP += surprisedP * 0.3;
   surprisedP = 0;
 
   // Renormalize to 3 classes so they sum to 1
@@ -930,12 +968,12 @@ function mapFaceWorkflowToThree(raw) {
     return [];
   }
   happyP /= total3;
-  sadP   /= total3;
+  sadP /= total3;
   angryP /= total3;
 
   const result = [
     { label: "happy", confidence: Number(happyP.toFixed(6)) },
-    { label: "sad",   confidence: Number(sadP.toFixed(6)) },
+    { label: "sad", confidence: Number(sadP.toFixed(6)) },
     { label: "angry", confidence: Number(angryP.toFixed(6)) }
   ];
 
@@ -972,12 +1010,12 @@ async function sendAudioToAPI(audioBlob) {
 
     socket.onopen = async () => {
       console.log("Hume AI WebSocket connected");
-      
+
       // Convert Blob to Base64
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64data = reader.result.split(",")[1];
-        
+
         // Send configuration and data
         const message = {
           models: {
@@ -985,7 +1023,7 @@ async function sendAudioToAPI(audioBlob) {
           },
           data: base64data
         };
-        
+
         socket.send(JSON.stringify(message));
       };
       reader.readAsDataURL(audioBlob);
@@ -994,13 +1032,13 @@ async function sendAudioToAPI(audioBlob) {
     socket.onmessage = (event) => {
       try {
         const response = JSON.parse(event.data);
-        
+
         // Check for prosody predictions
         if (response.prosody && response.prosody.predictions && response.prosody.predictions.length > 0) {
           // Hume returns a list of emotions. We need to map them to our format.
           // Taking the first prediction (since we sent one file)
           const emotions = response.prosody.predictions[0].emotions;
-          
+
           // Map to our format: { label: "happy", confidence: 0.9 }
           const candidates = emotions.map(e => ({
             label: e.name,
@@ -1014,7 +1052,7 @@ async function sendAudioToAPI(audioBlob) {
             transcript: "Voice analysis complete", // Hume prosody doesn't always return transcript, use placeholder or implement ASR if needed
             predictions: candidates
           };
-          
+
           // We got what we needed, close the socket
           socket.close();
         }
@@ -1033,8 +1071,8 @@ async function sendAudioToAPI(audioBlob) {
         // For now, if we didn't get a result, return empty/neutral to avoid breaking app
         console.warn("Hume AI closed without returning predictions.");
         resolve({
-            transcript: "Analysis failed",
-            predictions: [{ label: "neutral", confidence: 0 }]
+          transcript: "Analysis failed",
+          predictions: [{ label: "neutral", confidence: 0 }]
         });
       }
     };
@@ -1168,7 +1206,7 @@ function candidatesToDistribution(candidates) {
   const total = dist.happy + dist.sad + dist.angry;
   if (total > 0) {
     dist.happy /= total;
-    dist.sad   /= total;
+    dist.sad /= total;
     dist.angry /= total;
   }
 
