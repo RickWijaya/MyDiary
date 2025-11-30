@@ -131,7 +131,19 @@ async function loadUserData() {
     document.getElementById("userEmail").textContent = data.email;
     userEntries = Array.isArray(data.entries) ? data.entries : [];
 
-    updateStreakAndRecap(data.streak, data.recap);
+    const todayStr = getTodayString();
+    const hasTodayEntry = userEntries.some((e) => e.date === todayStr);
+
+    // 🔹 If user already checked in today → trust backend streak (includes today)
+    // 🔹 If NOT checked in today → show streak up to yesterday instead of 0
+    let displayStreak;
+    if (hasTodayEntry) {
+      displayStreak = typeof data.streak === "number" ? data.streak : 0;
+    } else {
+      displayStreak = computeStreakUntilYesterday(userEntries);
+    }
+
+    updateStreakAndRecap(displayStreak, data.recap, hasTodayEntry);
     updateChart(userEntries);
     updateCheckinPanel(userEntries);
   } catch (err) {
@@ -141,9 +153,21 @@ async function loadUserData() {
   }
 }
 
+
 // ===== STREAK & RECAP UI =====
-function updateStreakAndRecap(streak, recapArray) {
-  document.getElementById("streakValue").textContent = streak || 0;
+function updateStreakAndRecap(streak, recapArray, hasTodayEntry) {
+  const streakEl = document.getElementById("streakValue");
+
+  // show whatever frontend passes
+  streakEl.textContent = typeof streak === "number" ? streak : 0;
+
+  streakEl.classList.remove("text-orange-500", "text-gray-400");
+
+  if (hasTodayEntry) {
+    streakEl.classList.add("text-orange-500"); // checked in today
+  } else {
+    streakEl.classList.add("text-gray-400");   // not yet → gray
+  }
 
   const recapList = document.getElementById("recapList");
   recapList.innerHTML = "";
@@ -159,6 +183,39 @@ function updateStreakAndRecap(streak, recapArray) {
     li.textContent = "No recap yet. Keep checking in!";
     recapList.appendChild(li);
   }
+}
+
+// ===== HELPER: compute streak up to yesterday from entries =====
+function computeStreakUntilYesterday(entries) {
+  if (!Array.isArray(entries) || !entries.length) return 0;
+
+  // Build a set of date strings like "2025-11-29"
+  const dateSet = new Set(
+    entries
+      .filter((e) => e.date)
+      .map((e) => e.date)
+  );
+
+  // Start from "yesterday" relative to today (browser timezone)
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // Format helper → "YYYY-MM-DD"
+  const toYMD = (d) => d.toISOString().slice(0, 10);
+
+  let streak = 0;
+  let cursor = new Date(yesterday);
+
+  while (true) {
+    const cursorStr = toYMD(cursor);
+    if (!dateSet.has(cursorStr)) break; // gap → stop streak
+
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return streak;
 }
 
 // (kept but not currently used – safe)
@@ -183,6 +240,29 @@ function applyHighlightStyles() {
 function updateChart(entries) {
   const canvas = document.getElementById("emotionChart");
   if (!canvas) return;
+    // ===== NEW: If only 1 entry → show “insufficient data” =====
+  const chartContainer = document.getElementById("chartContainer"); 
+  const noDataBox = document.getElementById("noDataBox"); 
+
+  if (entries.length <= 1) {
+    if (chartContainer) chartContainer.classList.add("hidden");
+    if (noDataBox) {
+      noDataBox.classList.remove("hidden");
+
+      const first = entries[0];
+      if (first) {
+        document.getElementById("noDataEmotion").textContent = first.final || "-";
+        document.getElementById("noDataDiary").textContent = first.diary || "-";
+        document.getElementById("noDataDate").textContent = first.date || "-";
+      }
+    }
+    return; // stop here, don’t load the chart
+  }
+
+  // If data > 1, show chart normally
+  if (chartContainer) chartContainer.classList.remove("hidden");
+  if (noDataBox) noDataBox.classList.add("hidden");
+
   const ctx = canvas.getContext("2d");
 
   if (emotionChart) emotionChart.destroy();
@@ -436,7 +516,9 @@ function resetCheckinModalState() {
   recordStatus.textContent = "Tap the mic to record your voice diary.";
 
   const transcriptDisplay = document.getElementById("transcriptDisplay");
-  transcriptDisplay.textContent = "Your transcript will appear here after recording.";
+transcriptDisplay.value = "";
+currentTranscript = "";
+
 }
 
 async function initWebcam() {
@@ -506,11 +588,12 @@ function setupAudioRecording() {
       }
 
       const display = document.getElementById("transcriptDisplay");
-      const text = (final + interim).trim();
-      if (text) {
-        currentTranscript = text;
-        display.textContent = currentTranscript;
-      }
+const text = (final + interim).trim();
+if (text) {
+  currentTranscript = text;
+  display.value = currentTranscript; // textarea
+}
+
     };
 
     recognition.onerror = (event) => {
@@ -575,12 +658,13 @@ async function startRecording() {
 
       // Only use API transcript if Web Speech didn't fill it
       if (audioResult && audioResult.transcript && !currentTranscript) {
-        currentTranscript = audioResult.transcript;
-        const transcriptDisplay = document.getElementById("transcriptDisplay");
-        transcriptDisplay.textContent = currentTranscript;
-      } else if (!currentTranscript) {
-        currentTranscript = "";
-      }
+  currentTranscript = audioResult.transcript;
+  const transcriptDisplay = document.getElementById("transcriptDisplay");
+  transcriptDisplay.value = currentTranscript; // textarea
+} else if (!currentTranscript) {
+  currentTranscript = "";
+}
+
 
       const rawCandidates = normalizeCandidates(audioResult);
       const reduced = reduceToThreeEmotions(rawCandidates);
@@ -900,6 +984,8 @@ async function handleCheckinSubmit() {
     alert("Please capture your face before submitting.");
     return;
   }
+  const transcriptEl = document.getElementById("transcriptDisplay");
+  currentTranscript = (transcriptEl?.value || "").trim();
 
   if (!recordedAudioBlob || !currentTranscript) {
     alert("Please record your voice diary (we need audio & transcript).");
