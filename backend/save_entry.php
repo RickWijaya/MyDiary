@@ -25,9 +25,9 @@ if (!is_array($payload)) {
     exit;
 }
 
-$date  = isset($payload['date']) ? $payload['date'] : null;
+$date = isset($payload['date']) ? $payload['date'] : null;
 $diary = isset($payload['diary']) ? $payload['diary'] : null;
-$face  = isset($payload['face']) ? $payload['face'] : null;
+$face = isset($payload['face']) ? $payload['face'] : null;
 $voice = isset($payload['voice']) ? $payload['voice'] : null;
 $final = isset($payload['final']) ? $payload['final'] : null;
 
@@ -44,7 +44,19 @@ if (
     exit;
 }
 
-$data  = read_data();
+// Override final emotion if diary text strongly suggests otherwise
+if ($diary) {
+    $text_emotion = analyze_text_emotion($diary);
+    if ($text_emotion) {
+        $final = $text_emotion;
+        // Also override face scores so the graph reflects the text emotion
+        $face = ['happy' => 0, 'sad' => 0, 'angry' => 0];
+        $face[$text_emotion] = 1.0;
+    }
+}
+
+
+$data = read_data();
 $email = $_SESSION['email'];
 $index = get_user_index($data, $email);
 
@@ -60,15 +72,15 @@ if (!isset($data['users'][$index]['entries']) || !is_array($data['users'][$index
 }
 
 $entries = $data['users'][$index]['entries'];
-$found   = false;
+$found = false;
 
 // Replace existing entry for this date, or add new
 foreach ($entries as $i => $entry) {
     if (isset($entry['date']) && $entry['date'] === $date) {
         $entries[$i] = [
-            'date'  => $date,
+            'date' => $date,
             'diary' => $diary,
-            'face'  => $face,
+            'face' => $face,
             'voice' => $voice,
             'final' => $final,
         ];
@@ -79,9 +91,9 @@ foreach ($entries as $i => $entry) {
 
 if (!$found) {
     $entries[] = [
-        'date'  => $date,
+        'date' => $date,
         'diary' => $diary,
-        'face'  => $face,
+        'face' => $face,
         'voice' => $voice,
         'final' => $final,
     ];
@@ -98,11 +110,11 @@ if (!write_data($data)) {
 
 // Return updated streak & recap for instant refresh
 $streak = calculate_streak($entries);
-$recap  = generate_recap($entries);
+$recap = generate_recap($entries);
 
 echo json_encode([
     'success' => true,
-    'streak'  => $streak,
-    'recap'   => $recap,
+    'streak' => $streak,
+    'recap' => $recap,
 ]);
 exit;

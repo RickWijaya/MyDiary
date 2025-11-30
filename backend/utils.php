@@ -216,3 +216,44 @@ function generate_recap($entries)
 
     return array_values(array_unique($messages));
 }
+
+
+/**
+ * Simple keyword-based emotion analysis for text.
+ * Returns 'happy', 'sad', 'angry', or null if neutral/unknown.
+ */
+function analyze_text_emotion($text)
+{
+    $text = strtolower($text);
+
+    // Simple keyword lists
+    $happy_words = ['happy', 'joy', 'excited', 'awesome', 'great', 'good', 'love', 'wonderful', 'glad'];
+    $sad_words   = ['sad', 'unhappy', 'depressed', 'crying', 'bad', 'down', 'lonely', 'hurt', 'grief'];
+    $angry_words = ['angry', 'mad', 'furious', 'hate', 'annoyed', 'frustrated', 'rage'];
+
+    // Count occurrences
+    $scores = ['happy' => 0, 'sad' => 0, 'angry' => 0];
+
+    foreach ($happy_words as $word) {
+        if (strpos($text, $word) !== false) $scores['happy']++;
+    }
+    foreach ($sad_words as $word) {
+        if (strpos($text, $word) !== false) $scores['sad']++;
+    }
+    foreach ($angry_words as $word) {
+        if (strpos($text, $word) !== false) $scores['angry']++;
+    }
+
+    // Find max score
+    $max_score = 0;
+    $best_emotion = null;
+
+    foreach ($scores as $emotion => $score) {
+        if ($score > $max_score) {
+            $max_score = $score;
+            $best_emotion = $emotion;
+        }
+    }
+
+    return $best_emotion;
+}

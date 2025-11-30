@@ -878,13 +878,88 @@ function blobToDataUrl(blob) {
   });
 }
 
-// Dummy Audio API (voice pipeline left as-is / not ready yet)
+const HUME_API_KEY = "AdJpLjRXp0u40HA7hpksDAMCpSKiGkXVIokSuMGShGeU2tDT";
+
+// Real Audio API using Hume AI WebSocket
 async function sendAudioToAPI(audioBlob) {
-  console.log("Mocking Audio API");
-  return {
-    transcript: "This is a simulated transcript.",
-    predictions: [{ label: "neutral", confidence: 0 }]
-  };
+  return new Promise((resolve, reject) => {
+    const socket = new WebSocket(`wss://api.hume.ai/v0/stream/models?api_key=${HUME_API_KEY}`);
+    let result = null;
+
+    socket.onopen = async () => {
+      console.log("Hume AI WebSocket connected");
+      
+      // Convert Blob to Base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64data = reader.result.split(",")[1];
+        
+        // Send configuration and data
+        const message = {
+          models: {
+            prosody: {}
+          },
+          data: base64data
+        };
+        
+        socket.send(JSON.stringify(message));
+      };
+      reader.readAsDataURL(audioBlob);
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const response = JSON.parse(event.data);
+        
+        // Check for prosody predictions
+        if (response.prosody && response.prosody.predictions && response.prosody.predictions.length > 0) {
+          // Hume returns a list of emotions. We need to map them to our format.
+          // Taking the first prediction (since we sent one file)
+          const emotions = response.prosody.predictions[0].emotions;
+          
+          // Map to our format: { label: "happy", confidence: 0.9 }
+          const candidates = emotions.map(e => ({
+            label: e.name,
+            confidence: e.score
+          }));
+
+          // Sort by confidence
+          candidates.sort((a, b) => b.confidence - a.confidence);
+
+          result = {
+            transcript: "Voice analysis complete", // Hume prosody doesn't always return transcript, use placeholder or implement ASR if needed
+            predictions: candidates
+          };
+          
+          // We got what we needed, close the socket
+          socket.close();
+        }
+      } catch (err) {
+        console.error("Error parsing Hume response:", err);
+      }
+    };
+
+    socket.onclose = () => {
+      console.log("Hume AI WebSocket closed");
+      if (result) {
+        resolve(result);
+      } else {
+        // If closed without result, maybe it was just a keepalive or error
+        // But if we sent data and got nothing, it's an error.
+        // For now, if we didn't get a result, return empty/neutral to avoid breaking app
+        console.warn("Hume AI closed without returning predictions.");
+        resolve({
+            transcript: "Analysis failed",
+            predictions: [{ label: "neutral", confidence: 0 }]
+        });
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error("Hume AI WebSocket error:", error);
+      reject(error);
+    };
+  });
 }
 
 // ===== CHECK-IN SUBMISSION =====
