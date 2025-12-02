@@ -130,46 +130,45 @@ function getTodayString() {
 }
 
 // ===== LOAD USER DATA =====
+// ===== LOAD USER DATA =====
 async function loadUserData() {
   try {
-    // FETCH LOCAL JSON (Read-only mode)
-    console.log("Fetching data from data/data.json...");
-    const res = await fetch("data/data.json");
-    if (!res.ok) throw new Error("Could not load data.json");
+    // FETCH FROM BACKEND (Real auth mode)
+    console.log("Fetching data from backend/get_user_data.php...");
+    const res = await fetch("backend/get_user_data.php");
 
-    const db = await res.json();
-    // Default to demo user for this static server view
-    const user = db.users.find(u => u.email === "demo@example.com");
+    if (res.status === 401) {
+      // Not logged in -> redirect
+      window.location.href = "login.html";
+      return;
+    }
 
-    if (!user) throw new Error("Demo user not found in data.json");
+    if (!res.ok) throw new Error("Could not load user data");
 
-    const data = {
-      email: user.email,
-      streak: 0, // We will compute this
-      recap: [], // Static or computed
-      entries: user.entries || []
-    };
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || "Unknown error");
 
+    // data: { success, email, entries, streak, recap }
     document.getElementById("userEmail").textContent = data.email;
-    userEntries = data.entries;
+    userEntries = data.entries || [];
 
     const todayStr = getTodayString();
     const hasTodayEntry = userEntries.some((e) => e.date === todayStr);
 
-    // Compute streak locally since we don't have backend logic
-    const displayStreak = computeStreakUntilYesterday(userEntries) + (hasTodayEntry ? 1 : 0);
-
-    updateStreakAndRecap(displayStreak, ["Welcome back!", "Keep tracking your emotions."], hasTodayEntry);
+    // Use backend streak/recap if available, or fallback/display
+    // The backend calculates streak based on entries, so we can trust it.
+    updateStreakAndRecap(data.streak, data.recap, hasTodayEntry);
     updateChart(userEntries);
     updateCheckinPanel(userEntries);
 
   } catch (err) {
     console.error(err);
     const statusEl = document.getElementById("checkinStatus");
-    if (statusEl) statusEl.textContent = "Failed to load data from data.json";
+    if (statusEl) statusEl.textContent = "Failed to load user data.";
 
-    // Fallback to empty if failed
-    document.getElementById("userEmail").textContent = "Guest";
+    // If strictly required, maybe redirect to login? 
+    // For now, let's just show error or redirect if it was a fetch error
+    // window.location.href = "login.html";
   }
 }
 

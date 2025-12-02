@@ -258,8 +258,43 @@
                         "angry": 0.021054021054021054
                     },
                     "final": "happy"
+                },
+                {
+                    "date": "2025-12-02",
+                    "diary": "I'm very happy today",
+                    "face": {
+                        "happy": 1,
+                        "sad": 0,
+                        "angry": 0
+                    },
+                    "voice": {
+                        "happy": 0,
+                        "sad": 0,
+                        "angry": 0
+                    },
+                    "final": "happy"
+                },
+                {
+                    "date": "2025-12-02",
+                    "diary": "angry today",
+                    "face": {
+                        "happy": 0,
+                        "sad": 0,
+                        "angry": 1
+                    },
+                    "voice": {
+                        "happy": 0,
+                        "sad": 0,
+                        "angry": 0
+                    },
+                    "final": "angry"
                 }
             ]
+        },
+        {
+            "email": "demo3@example.com",
+            "password": "1234567890",
+            "entries": []
         }
     ]
 }
