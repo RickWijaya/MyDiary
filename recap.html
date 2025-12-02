@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard - Daily Emotion Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body class="bg-gray-50 min-h-screen">
+<header class="bg-black text-white shadow-lg">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span
+          class="inline-flex h-8 w-8 rounded-xl bg-orange-500 text-black items-center justify-center font-black text-lg">
+          ET
+        </span>
+        <div>
+          <h1 class="text-lg md:text-xl font-bold leading-tight">
+            Daily Emotion Tracker
+          </h1>
+          <p class="text-xs text-white/70">
+            Face check-in • Voice diary • Mood analytics
+          </p>
+        </div>
+      </div>
+      <a href="dashboard.html" class="nav-link-dashboard text-orange-500 hover:text-orange-900">
+          Dashboard
+        </a>
+        <a href="recap.html" class="nav-link-recap text-orange-500 hover:text-orange-900">
+          Recap
+        </a>
+      <div class="flex items-center gap-4 text-xs md:text-sm">
+        <!-- Clock (WIB) -->
+        <div class="text-right hidden sm:block">
+          <p class="text-white/60">WIB time</p>
+          <p class="font-mono text-xs md:text-sm text-orange-300" id="clock">
+            --
+          </p>
+        </div>
+
+        <!-- User email -->
+        <div class="text-right">
+          <p class="text-white/60">Logged in as</p>
+          <p class="font-semibold text-orange-400" id="userEmail"></p>
+        </div>
+
+        <!-- Logout -->
+        <form method="POST" action="backend/logout.php">
+          <button
+            class="px-3 py-1.5 rounded-xl bg-orange-500 text-black font-semibold hover:bg-orange-600 text-xs md:text-sm active:translate-y-[1px]">
+            Logout
+          </button>
+        </form>
+      </div>
+    </div>
+  </header>
+  <main class="max-w-5xl mx-auto px-4 py-8">
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold mb-1">Your recap</h1>
+        <p class="text-gray-500 text-sm">
+          Review your past diaries and see how your emotions shifted over time.
+        </p>
+      </div>
+      <div id="clock" class="text-xs text-gray-400"></div>
+    </div>
+
+    <!-- Recap list container -->
+    <div id="recapContainer" class="space-y-4">
+      <!-- Cards will be injected by recap.js -->
+    </div>
+
+    <!-- Empty state -->
+    <div id="recapEmptyState"
+         class="hidden mt-8 text-center text-gray-500 text-sm">
+      You don’t have any check-ins yet. Do your first check-in from the dashboard
+      to unlock your recap.
+    </div>
+  </main>
+
+  <script src="assets/js/recap.js"></script>
+</body>
+</html>
