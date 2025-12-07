@@ -227,22 +227,53 @@
           ✕ Close
         </button>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Face check -->
-        <div>
-          <h4 class="text-xs font-semibold mb-2 text-black/80">Face check</h4>
-          <div class="aspect-video bg-black rounded-2xl overflow-hidden mb-2 border border-black/40">
-            <video id="webcam" autoplay playsinline class="w-full h-full object-cover"></video>
-          </div>
-          <button id="captureBtn"
-            class="w-full bg-black text-white py-2 rounded-xl text-xs md:text-sm font-semibold hover:bg-black/90 active:translate-y-[1px]">
-            Capture face
-          </button>
-          <p class="text-[11px] text-black/50 mt-1">
-            We capture a single frame and send it to the AI for emotion detection.
-          </p>
-          <img id="capturePreview" class="mt-2 rounded-xl hidden border border-black/10" alt="Captured frame preview" />
+      <div>
+  <h4 class="text-xs font-semibold mb-2 text-black/80">Face check</h4>
+
+  <!-- Webcam + Face Template Overlay -->
+  <div class="relative aspect-video bg-black rounded-2xl overflow-hidden mb-2 border border-black/40">
+    <!-- Live webcam -->
+    <video
+      id="webcam"
+      autoplay
+      playsinline
+      class="w-full h-full object-cover">
+    </video>
+
+    <!-- Face template overlay -->
+    <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+      <!-- Outer dark overlay (optional vignette) -->
+      <div class="absolute inset-0 bg-black/30"></div>
+
+      <!-- Face guide circle -->
+      <div class="relative flex items-center justify-center">
+        <div
+          class="w-40 h-40 md:w-56 md:h-56 rounded-full border-2 border-orange-400 shadow-[0_0_25px_rgba(249,115,22,0.7)]">
         </div>
+
+        <!-- Small top text -->
+        <div class="absolute -top-8 w-full text-center">
+          <p class="text-[11px] md:text-xs font-medium text-white drop-shadow">
+            Align your face inside the circle
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button id="captureBtn"
+    class="w-full bg-black text-white py-2 rounded-xl text-xs md:text-sm font-semibold hover:bg-black/90 active:translate-y-[1px]">
+    Capture face
+  </button>
+  <p class="text-[11px] text-black/50 mt-1">
+    We capture a single frame and send it to the AI for emotion detection.
+  </p>
+  <img
+    id="capturePreview"
+    class="mt-2 rounded-xl hidden border border-black/10"
+    alt="Captured frame preview" />
+</div>
+
 
         <!-- Voice diary -->
         <div>
