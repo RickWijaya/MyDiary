@@ -1,56 +1,155 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <title>Forgot Password</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="assets/css/style.css"/>
 </head>
 
-<body class="min-h-screen bg-white flex">
+<body class="bg-black text-white">
 
-  <!-- LEFT -->
-  <div class="hidden md:flex w-1/2 bg-black text-white px-12 items-center">
-    <h1 class="text-4xl font-black">Reset Password</h1>
-  </div>
+<div class="max-w-md mx-auto mt-20 p-6 bg-neutral-900 rounded-xl shadow-xl">
 
-  <!-- RIGHT -->
-  <div class="w-full md:w-1/2 px-8 md:px-16 flex flex-col justify-center">
+  <h1 class="text-xl font-bold mb-4">Reset Your Password</h1>
 
-    <h2 class="text-3xl font-bold mb-4">Forgot Password?</h2>
-    <p class="text-black/60 text-sm mb-6">
-      Enter your email and we’ll pretend to send a reset link.
-    </p>
+  <!-- Email + Send Code -->
+  <form id="forgotForm" class="space-y-4">
+    
+    <label class="block text-sm font-medium">
+      Registered Email
+      <input
+        type="email"
+        id="emailInput"
+        class="mt-1 w-full px-3 py-2 rounded-md bg-neutral-800 text-white border border-neutral-700"
+        required
+      />
+    </label>
 
-    <p id="infoMessage" class="hidden text-sm text-green-700 bg-green-50 px-3 py-2 rounded-xl mb-4">
-      If the email exists, a reset link has been sent.
-    </p>
+    <button
+      id="sendCodeBtn"
+      class="w-full py-2.5 bg-orange-500 text-black rounded-xl font-semibold hover:bg-orange-600"
+      type="submit"
+    >
+      Send Reset Code
+    </button>
+  </form>
 
-    <form id="forgotForm" class="space-y-5">
-      <div>
-        <label class="text-sm font-semibold">Email</label>
-        <input id="email" type="email" required
-          class="w-full border border-black/20 rounded-xl px-3 py-3 focus:ring-2 focus:ring-orange-500">
-      </div>
+  <!-- Hidden Section: Code + New Password -->
+  <form id="resetForm" class="space-y-4 mt-6 hidden">
 
-      <button class="w-full bg-orange-500 text-black py-3 rounded-xl text-sm font-semibold hover:bg-orange-600 transition">
-        Send Reset Link
-      </button>
-    </form>
+    <label class="block text-sm font-medium">
+      Enter Reset Code
+      <input
+        type="text"
+        id="codeInput"
+        class="mt-1 w-full px-3 py-2 rounded-md bg-neutral-800 text-white border border-neutral-700"
+        placeholder="6-digit reset code"
+        required
+      />
+    </label>
 
-    <a href="login.html" class="mt-4 text-black/60 hover:text-orange-600 text-sm">
-      ← Back to login
-    </a>
+    <label class="block text-sm font-medium">
+      New Password
+      <input
+        type="password"
+        id="newPasswordInput"
+        class="mt-1 w-full px-3 py-2 rounded-md bg-neutral-800 text-white border border-neutral-700"
+        required
+      />
+    </label>
 
-  </div>
+    <button
+      id="resetBtn"
+      class="w-full py-2.5 bg-orange-500 text-black rounded-xl font-semibold hover:bg-orange-600"
+      type="submit"
+    >
+      Reset Password
+    </button>
 
-  <script>
-    document.getElementById('forgotForm').addEventListener('submit', function(e){
-      e.preventDefault();
-      document.getElementById("infoMessage").classList.remove("hidden");
+  </form>
+</div>
+
+<script>
+// ======= PART 1: SEND RESET CODE =======
+document.getElementById("forgotForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const email = document.getElementById("emailInput").value.trim();
+  if (!email) return alert("Enter your email");
+
+  try {
+    const res = await fetch("backend/forgot_password.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
     });
-  </script>
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
+    const data = await res.json();
+    if (!data.success) {
+      alert("Error: " + data.message);
+      return;
+    }
+
+    // Show numeric reset code
+    alert(
+      "Your reset code is: " + data.code +
+      "\n\nUse this code below to reset your password."
+    );
+
+    // Reveal reset form
+    document.getElementById("resetForm").classList.remove("hidden");
+
+  } catch (err) {
+    console.error("Fetch error:", err);
+    alert("Network error: " + err.message);
+  }
+});
+
+// ======= PART 2: RESET PASSWORD =======
+document.getElementById("resetForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const email = document.getElementById("emailInput").value.trim();
+  const code = document.getElementById("codeInput").value.trim();
+  const newPassword = document.getElementById("newPasswordInput").value.trim();
+
+  if (!email || !code || !newPassword) {
+    alert("Please fill all fields.");
+    return;
+  }
+
+  try {
+    const res = await fetch("backend/reset_password.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code, newPassword })
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
+    const data = await res.json();
+    if (!data.success) {
+      alert("Error: " + data.message);
+      return;
+    }
+
+    alert("Password updated! You can now log in.");
+    window.location.href = "login.html";
+
+  } catch (err) {
+    console.error("Fetch error:", err);
+    alert("Network error: " + err.message);
+  }
+});
+</script>
 
 </body>
 </html>

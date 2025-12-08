@@ -5,7 +5,7 @@
             "password": "123456",
             "entries": [
                 {
-                    "date": "2025-11-30",
+                    "date": "2025-11-18",
                     "diary": "I am happy.",
                     "face": {
                         "happy": 0.78,
@@ -20,7 +20,7 @@
                     "final": "happy"
                 },
                 {
-                    "date": "2025-11-13",
+                    "date": "2025-11-19",
                     "diary": "Woke up tired and a bit down.",
                     "face": {
                         "happy": 0.14,
@@ -35,7 +35,7 @@
                     "final": "sad"
                 },
                 {
-                    "date": "2025-11-14",
+                    "date": "2025-11-20",
                     "diary": "Got frustrated by a delay at work.",
                     "face": {
                         "happy": 0.12,
@@ -50,7 +50,7 @@
                     "final": "angry"
                 },
                 {
-                    "date": "2025-11-15",
+                    "date": "2025-11-21",
                     "diary": "Relaxed weekend, spent time with friends.",
                     "face": {
                         "happy": 0.84,
@@ -65,7 +65,7 @@
                     "final": "happy"
                 },
                 {
-                    "date": "2025-11-16",
+                    "date": "2025-11-22",
                     "diary": "Felt a bit low, not much energy today.",
                     "face": {
                         "happy": 0.11,
@@ -80,7 +80,7 @@
                     "final": "sad"
                 },
                 {
-                    "date": "2025-11-17",
+                    "date": "2025-11-23",
                     "diary": "Some conflict made me a bit angry, but I calmed down later.",
                     "face": {
                         "happy": 0.13,
@@ -95,7 +95,7 @@
                     "final": "angry"
                 },
                 {
-                    "date": "2025-11-18",
+                    "date": "2025-11-24",
                     "diary": "Good news from a friend, feeling lighter.",
                     "face": {
                         "happy": 0.81,
@@ -110,7 +110,7 @@
                     "final": "happy"
                 },
                 {
-                    "date": "2025-11-19",
+                    "date": "2025-11-25",
                     "diary": "Long tiring day, mood was a bit sad.",
                     "face": {
                         "happy": 0.15,
@@ -125,7 +125,7 @@
                     "final": "sad"
                 },
                 {
-                    "date": "2025-11-20",
+                    "date": "2025-11-26",
                     "diary": "Got irritated in traffic, felt angry for a while.",
                     "face": {
                         "happy": 0.11,
@@ -140,7 +140,7 @@
                     "final": "angry"
                 },
                 {
-                    "date": "2025-11-21",
+                    "date": "2025-11-27",
                     "diary": "Very good day overall, feeling grateful and happy.",
                     "face": {
                         "happy": 0.9,
@@ -155,7 +155,7 @@
                     "final": "happy"
                 },
                 {
-                    "date": "2025-11-24",
+                    "date": "2025-11-28",
                     "diary": "This is a simulated transcript.",
                     "face": {
                         "happy": 0.25,
@@ -170,7 +170,7 @@
                     "final": "sad"
                 },
                 {
-                    "date": "2025-11-25",
+                    "date": "2025-11-29",
                     "diary": "This is a simulated transcript.",
                     "face": {
                         "happy": 0,
@@ -185,7 +185,7 @@
                     "final": "sad"
                 },
                 {
-                    "date": "2025-11-26",
+                    "date": "2025-11-30",
                     "diary": "This is a simulated transcript.",
                     "face": {
                         "happy": 0.13951757550239563,
@@ -200,7 +200,7 @@
                     "final": "happy"
                 },
                 {
-                    "date": "2025-11-30",
+                    "date": "2025-12-01",
                     "diary": "This is a simulated transcript.",
                     "face": {
                         "happy": 0.6086533913466088,
@@ -215,7 +215,7 @@
                     "final": "happy"
                 },
                 {
-                    "date": "2025-11-29",
+                    "date": "2025-12-02",
                     "diary": "This is a simulated transcript.",
                     "face": {
                         "happy": 0.000264000264000264,
@@ -230,7 +230,7 @@
                     "final": "sad"
                 },
                 {
-                    "date": "2025-11-30",
+                    "date": "2025-12-03",
                     "diary": "Hello world",
                     "face": {
                         "happy": 0.0026789973210026787,
@@ -245,7 +245,7 @@
                     "final": "sad"
                 },
                 {
-                    "date": "2025-12-01",
+                    "date": "2025-12-04",
                     "diary": "happy day",
                     "face": {
                         "happy": 1,
@@ -260,7 +260,7 @@
                     "final": "happy"
                 },
                 {
-                    "date": "2025-12-02",
+                    "date": "2025-12-05",
                     "diary": "I'm very happy today",
                     "face": {
                         "happy": 1,
@@ -275,7 +275,7 @@
                     "final": "happy"
                 },
                 {
-                    "date": "2025-12-02",
+                    "date": "2025-12-06",
                     "diary": "angry today",
                     "face": {
                         "happy": 0,
@@ -290,7 +290,7 @@
                     "final": "angry"
                 },
                 {
-                    "date": "2025-12-02",
+                    "date": "2025-12-07",
                     "diary": "cih",
                     "face": {
                         "happy": 0.000395,
@@ -304,12 +304,71 @@
                     },
                     "final": "sad"
                 }
-            ]
+            ],
+            "reset_code": "702238"
         },
         {
             "email": "demo3@example.com",
             "password": "1234567890",
-            "entries": []
+            "entries": [
+                {
+                    "date": "2025-12-02",
+                    "diary": "I am",
+                    "face": {
+                        "happy": 0.002345997654002346,
+                        "sad": 0.6688663311336689,
+                        "angry": 0.3287876712123288
+                    },
+                    "voice": {
+                        "happy": 0,
+                        "sad": 0,
+                        "angry": 0
+                    },
+                    "final": "sad"
+                }
+            ]
+        },
+        {
+            "email": "demo4@example.com",
+            "password": "123456",
+            "entries": [
+                {
+                    "date": "2025-12-02",
+                    "diary": "I'm very happy",
+                    "face": {
+                        "happy": 1,
+                        "sad": 0,
+                        "angry": 0
+                    },
+                    "voice": {
+                        "happy": 0.807797,
+                        "sad": 0.160532,
+                        "angry": 0.031671
+                    },
+                    "final": "happy"
+                }
+            ]
+        },
+        {
+            "email": "demohappy@example.com",
+            "password": "1234567890",
+            "entries": [
+                {
+                    "date": "2025-12-08",
+                    "diary": "I'm very happy",
+                    "face": {
+                        "happy": 1,
+                        "sad": 0,
+                        "angry": 0
+                    },
+                    "voice": {
+                        "happy": 0,
+                        "sad": 0,
+                        "angry": 0
+                    },
+                    "final": "happy"
+                }
+            ]
         }
     ]
 }
